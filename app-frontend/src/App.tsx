@@ -1,15 +1,7 @@
-import './App.css'
-import { Button } from "@/components/ui/button"
+import BudgetDashboard from './page'
 
 function App() {
-
-  return (
-    <>
-    <div className="p-10">
-                <Button>Klick mich</Button>
-              </div>
-    </>
-  )
+  return <BudgetDashboard />
 }
 
 export default App
