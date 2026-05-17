@@ -43,6 +43,14 @@ export default function BudgetDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [message, setMessage] = useState('Loading...')
+
+  useEffect(() => {
+    fetch('/api/data/')
+      .then((res) => res.json())
+      .then((data) => setMessage(data.message))
+      .catch((err) => console.error("Error fetching data:", err))
+  }, [])
 
   // Fetch data on mount - ready for API integration
   useEffect(() => {
@@ -112,6 +120,7 @@ export default function BudgetDashboard() {
               <p className="text-sm text-muted-foreground">Verwalten Sie Ihre Finanzen</p>
             </div>
           </div>
+          <p>Backend Status: <strong>{message}</strong></p>
           <AddTransactionModal onAddTransaction={handleAddTransaction} />
         </header>
 

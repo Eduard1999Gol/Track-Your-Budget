@@ -85,7 +85,8 @@ DATABASES = {
     'default': {
         "ENGINE": 'django.db.backends.postgresql',
         "NAME": 'budget_tracker',
-        "USER": 'postgres',
+        "USER": 'eduard_admin',
+        "PASSWORD": 'Maxalasa1999!',
         "HOST": 'localhost',
         "PORT": '5432',
     }
