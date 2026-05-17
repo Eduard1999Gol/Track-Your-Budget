@@ -81,7 +81,7 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APPS': [{
-            'client_id': '[REMOVED]',
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
             'secret': os.getenv('GOOGLE_SECRET'),
             'key': ''
         }],
