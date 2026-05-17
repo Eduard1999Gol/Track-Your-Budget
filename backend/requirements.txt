@@ -1,0 +1,4 @@
+requests
+PyJWT>=2.0.0
+django-allauth
+psycopg2-binary
