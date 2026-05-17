@@ -1,4 +1,4 @@
-import BudgetDashboard from './page'
+import BudgetDashboard from './Dashboard'
 
 function App() {
   return <BudgetDashboard />
