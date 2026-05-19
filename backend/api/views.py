@@ -1,3 +1,4 @@
+from backend import settings
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
@@ -6,7 +7,7 @@ from dj_rest_auth.registration.views import SocialLoginView
 
 class GoogleLogin(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
-    callback_url = "http://localhost:5173" # Must match your frontend URL configuration
+    callback_url = settings.CALLBACK_URL
     client_class = OAuth2Client
 
 @api_view(['GET'])

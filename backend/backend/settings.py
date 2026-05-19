@@ -12,16 +12,19 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!ut-f3tqu_2as+=r@gdp9$@6-1+)ze7lw@9ddxel#x=xax=1=c'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -77,6 +80,8 @@ ACCOUNT_USERNAME_REQUIRED = False
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
+CALLBACK_URL = os.getenv('CALLBACK_URL', 'http://localhost:5173')
+
 # Add your Google Credentials safely
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
@@ -121,11 +126,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': {
         "ENGINE": 'django.db.backends.postgresql',
-        "NAME": 'budget_tracker',
-        "USER": 'eduard_admin',
-        "PASSWORD": 'Maxalasa1999!',
-        "HOST": 'localhost',
-        "PORT": '5432',
+        "NAME": os.getenv('POSTGRES_DB'),
+        "USER": os.getenv('POSTGRES_USER'),
+        "PASSWORD": os.getenv('POSTGRES_PASSWORD'),
+        "HOST": os.getenv('POSTGRES_HOST', 'localhost'),
+        "PORT": os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
