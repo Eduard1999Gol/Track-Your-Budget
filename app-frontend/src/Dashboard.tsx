@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { OverviewCards } from '@/components/budget/overview-cards'
 import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
+import { UserMenu } from '@/components/budget/user-menu'
 import { TransactionList } from '@/components/budget/transaction-list'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
@@ -120,8 +121,10 @@ export default function BudgetDashboard() {
               <p className="text-sm text-muted-foreground">Verwalten Sie Ihre Finanzen</p>
             </div>
           </div>
-          <p>Backend Status: <strong>{message}</strong></p>
-          <AddTransactionModal onAddTransaction={handleAddTransaction} />
+          <div className="flex items-center gap-2">
+            <AddTransactionModal onAddTransaction={handleAddTransaction} />
+            <UserMenu />
+          </div>
         </header>
 
         {/* Overview Cards */}
