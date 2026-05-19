@@ -40,18 +40,18 @@ async function fetchMonthlyData(): Promise<MonthlyData[]> {
   return MOCK_MONTHLY_DATA
 }
 
-export default function BudgetDashboard() {
+export default function BudgetDashboard({ onLogout }: { onLogout: () => void }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [message, setMessage] = useState('Loading...')
 
-  useEffect(() => {
-    fetch('/api/data/')
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => console.error("Error fetching data:", err))
-  }, [])
+  // useEffect(() => {
+  //   fetch('/api/data/')
+  //     .then((res) => res.json())
+  //     .then((data) => setMessage(data.message))
+  //     .catch((err) => console.error("Error fetching data:", err))
+  // }, [])
 
   // Fetch data on mount - ready for API integration
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function BudgetDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <AddTransactionModal onAddTransaction={handleAddTransaction} />
-            <UserMenu />
+            <UserMenu onLogout={onLogout} />
           </div>
         </header>
 

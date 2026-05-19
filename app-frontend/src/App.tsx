@@ -12,11 +12,16 @@ function App() {
     setToken(newToken)
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token')
+    setToken(null)
+  }
+
   if (!token) {
     return <Login onLoginSuccess={handleLoginSuccess} />
   }
 
-  return <BudgetDashboard />
+  return <BudgetDashboard onLogout={handleLogout} />
 }
 
 export default App
