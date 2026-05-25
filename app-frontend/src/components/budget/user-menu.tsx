@@ -4,11 +4,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-export function UserMenu({ onLogout }: { onLogout: () => void }) {
+export function UserMenu({ onLogout, userName }: { onLogout: () => void; userName?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -18,6 +19,14 @@ export function UserMenu({ onLogout }: { onLogout: () => void }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {userName && (
+          <>
+            <DropdownMenuLabel className="font-normal">
+              <span className="font-semibold">{userName}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <User className="mr-2 h-4 w-4" />
           Profil

@@ -40,7 +40,7 @@ async function fetchMonthlyData(): Promise<MonthlyData[]> {
   return MOCK_MONTHLY_DATA
 }
 
-export default function BudgetDashboard({ onLogout }: { onLogout: () => void }) {
+export default function BudgetDashboard({ onLogout, userName }: { onLogout: () => void; userName?: string }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -123,7 +123,7 @@ export default function BudgetDashboard({ onLogout }: { onLogout: () => void }) 
           </div>
           <div className="flex items-center gap-2">
             <AddTransactionModal onAddTransaction={handleAddTransaction} />
-            <UserMenu onLogout={onLogout} />
+            <UserMenu onLogout={onLogout} userName={userName} />
           </div>
         </header>
 

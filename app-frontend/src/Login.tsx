@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { LayoutDashboard } from 'lucide-react'
 
 interface LoginProps {
-  onLoginSuccess: (token: string) => void
+  onLoginSuccess: (token: string, userName: string) => void
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
@@ -37,7 +37,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         console.log('Logged in successfully! Backend JWT:', backendAccessToken);
         
         // Store the access token to authenticate subsequent API calls
-        onLoginSuccess(backendAccessToken);
+        const userName = [data.user?.first_name, data.user?.last_name].filter(Boolean).join(' ') || data.user?.email || '';
+        onLoginSuccess(backendAccessToken, userName);
         
         // Optional: store refresh token if you implement silent token refreshing later
         localStorage.setItem('refresh_token', backendRefreshToken);
