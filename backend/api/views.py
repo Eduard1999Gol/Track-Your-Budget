@@ -1,5 +1,6 @@
 from rest_framework.decorators import api_view
 from django.contrib.auth.models import User
+from django.db.models import Sum
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from rest_framework.views import APIView
@@ -7,7 +8,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
+from datetime import date
 from .serializers import TransactionSerializer
+
+GERMAN_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
+                 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
 class GoogleLoginView(APIView):
     # Allow unauthenticated users to access this endpoint
@@ -78,4 +83,29 @@ class TransactionView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MonthlySummaryView(APIView):
+    def get(self, request):
+        today = date.today()
+        result = []
+
+        for i in range(2, -1, -1):
+            month = today.month - i
+            year = today.year
+            while month <= 0:
+                month += 12
+                year -= 1
+
+            qs = request.user.transactions.filter(date__year=year, date__month=month)
+            income = qs.filter(type='income').aggregate(total=Sum('amount'))['total'] or 0
+            expense = qs.filter(type='expense').aggregate(total=Sum('amount'))['total'] or 0
+
+            result.append({
+                'month': GERMAN_MONTHS[month - 1],
+                'income': float(income),
+                'expense': float(expense),
+            })
+
+        return Response(result, status=status.HTTP_200_OK)
 

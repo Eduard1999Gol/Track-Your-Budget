@@ -11,23 +11,15 @@ import type { Transaction, MonthlyData } from '@/lib/types'
 import { LayoutDashboard } from 'lucide-react'
 
 
-const MOCK_MONTHLY_DATA: MonthlyData[] = [
-  { month: 'Jan', income: 3200, expense: 2100 },
-  { month: 'Feb', income: 3500, expense: 2400 },
-  { month: 'Mär', income: 3200, expense: 2000 },
-  { month: 'Apr', income: 4100, expense: 2800 },
-  { month: 'Mai', income: 4300, expense: 1829 },
-]
-
-// Simulated API call - replace with actual API endpoint
+//  API call 
 async function fetchTransactions(): Promise<Transaction[]> {
   const response = await apiClient.get<Transaction[]>('/transactions/')
   return response.data
 }
 
 async function fetchMonthlyData(): Promise<MonthlyData[]> {
-  await new Promise((resolve) => setTimeout(resolve, 600))
-  return MOCK_MONTHLY_DATA
+  const response = await apiClient.get<MonthlyData[]>('/monthly-summary/')
+  return response.data
 }
 
 export default function BudgetDashboard({ onLogout, userName }: { onLogout: () => void; userName?: string }) {
@@ -35,13 +27,6 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
-
-  // useEffect(() => {
-  //   fetch('/api/data/')
-  //     .then((res) => res.json())
-  //     .then((data) => setMessage(data.message))
-  //     .catch((err) => console.error("Error fetching data:", err))
-  // }, [])
 
   // Fetch data on mount - ready for API integration
   useEffect(() => {
@@ -65,13 +50,20 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
     loadData()
   }, [])
 
-  // Calculate totals from transactions
-  const totals = transactions.reduce(
+  // Calculate totals from current month's transactions only
+  const now = new Date()
+  const currentMonthTransactions = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  })
+
+  const totals = currentMonthTransactions.reduce(
     (acc, t) => {
+      const amount = Number(t.amount)
       if (t.type === 'income') {
-        acc.income += t.amount
+        acc.income += amount
       } else {
-        acc.expenses += t.amount
+        acc.expenses += amount
       }
       return acc
     },
@@ -79,6 +71,10 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   )
 
   const balance = totals.income - totals.expenses
+
+  console.log('Current month transactions:', currentMonthTransactions)
+  console.log('Calculated totals:', totals)
+  console.log('Calculated balance:', balance)
 
   const handleAddTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id'>) => {
     try {
@@ -140,18 +136,17 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
         {/* Charts and Transaction List */}
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column - Charts */}
-          <div className="space-y-8">
-            <ExpenseChart data={monthlyData} isLoading={isLoading} />
-            <CategoryBreakdown transactions={transactions} isLoading={isLoading} />
-          </div>
-
-          {/* Right Column - Transaction List */}
           <div>
             <TransactionList
               transactions={sortedTransactions.slice(0, 10)}
               isLoading={isLoading}
               onDeleteTransaction={handleDeleteTransaction}
             />
+          </div>
+           {/* Right Column - Charts */}
+          <div className="space-y-8">
+            <ExpenseChart data={monthlyData} isLoading={isLoading} />
+            <CategoryBreakdown transactions={transactions} isLoading={isLoading} />
           </div>
         </div>
       </div>
