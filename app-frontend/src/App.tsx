@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
 import { Toaster } from '@/components/ui/toaster'
+import { useToast } from '@/hooks/use-toast'
+import { setUnauthorizedHandler } from '@/lib/apiClient'
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -10,19 +12,32 @@ function App() {
   const [userName, setUserName] = useState<string>(
     () => localStorage.getItem('user_name') ?? ''
   )
+  const { toast } = useToast()
+
+  const handleLogout = () => {
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_name')
+    setToken(null)
+    setUserName('')
+  }
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      toast({
+        title: 'Sitzung abgelaufen',
+        description: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
+        variant: 'destructive',
+      })
+      handleLogout()
+    })
+  }, [])
 
   const handleLoginSuccess = (newToken: string, newUserName: string) => {
     localStorage.setItem('auth_token', newToken)
     localStorage.setItem('user_name', newUserName)
     setToken(newToken)
     setUserName(newUserName)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('user_name')
-    setToken(null)
-    setUserName('')
   }
 
   return (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import apiClient from '@/lib/apiClient'
 import { OverviewCards } from '@/components/budget/overview-cards'
 import { AddTransactionModal } from '@/components/budget/add-transaction-modal'
 import { UserMenu } from '@/components/budget/user-menu'
@@ -18,17 +19,10 @@ const MOCK_MONTHLY_DATA: MonthlyData[] = [
   { month: 'Mai', income: 4300, expense: 1829 },
 ]
 
-class UnauthorizedError extends Error {}
-
 // Simulated API call - replace with actual API endpoint
 async function fetchTransactions(): Promise<Transaction[]> {
-  const token = localStorage.getItem('auth_token')
-  const response = await fetch('/api/transactions/', {
-    headers: { 'Authorization': `Bearer ${token}` },
-  })
-  if (response.status === 401) throw new UnauthorizedError()
-  if (!response.ok) throw new Error('Failed to fetch transactions')
-  return response.json()
+  const response = await apiClient.get<Transaction[]>('/transactions/')
+  return response.data
 }
 
 async function fetchMonthlyData(): Promise<MonthlyData[]> {
@@ -40,17 +34,7 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [message, setMessage] = useState('Loading...')
   const { toast } = useToast()
-
-  const handleUnauthorized = useCallback(() => {
-    toast({
-      title: 'Sitzung abgelaufen',
-      description: 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.',
-      variant: 'destructive',
-    })
-    onLogout()
-  }, [toast, onLogout])
 
   // useEffect(() => {
   //   fetch('/api/data/')
@@ -72,10 +56,6 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
         setTransactions(transactionsData)
         setMonthlyData(monthlyDataResult)
       } catch (error) {
-        if (error instanceof UnauthorizedError) {
-          handleUnauthorized()
-          return
-        }
         console.error('Failed to load data:', error)
       } finally {
         setIsLoading(false)
@@ -101,47 +81,22 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
   const balance = totals.income - totals.expenses
 
   const handleAddTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id'>) => {
-    const token = localStorage.getItem('auth_token')
     try {
-      const response = await fetch('/api/transactions/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(newTransaction),
-      })
-
-      if (response.status === 401) {
-        handleUnauthorized()
-        return
-      }
-
-      if (!response.ok) {
-        console.error('Failed to create transaction:', await response.text())
-        toast({
-          title: 'Fehler',
-          description: 'Transaktion konnte nicht gespeichert werden.',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      const created: Transaction = await response.json()
-      setTransactions((prev) => [created, ...prev])
+      const response = await apiClient.post<Transaction>('/transactions/', newTransaction)
+      setTransactions((prev) => [response.data, ...prev])
       toast({
         title: 'Erfolg',
         description: 'Transaktion wurde erfolgreich hinzugefügt.',
       })
     } catch (error) {
-      console.error('Network error creating transaction:', error)
+      console.error('Error creating transaction:', error)
       toast({
         title: 'Fehler',
-        description: 'Netzwerkfehler beim Speichern der Transaktion.',
+        description: 'Transaktion konnte nicht gespeichert werden.',
         variant: 'destructive',
       })
     }
-  }, [toast, handleUnauthorized])
+  }, [toast])
 
   const handleDeleteTransaction = useCallback((id: string) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id))
