@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Plus } from 'lucide-react'
 import { CATEGORIES, type Transaction } from '@/lib/types'
+import { Textarea } from '@/components/ui/textarea'
 
 interface AddTransactionModalProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void
@@ -30,6 +31,7 @@ interface AddTransactionModalProps {
 export function AddTransactionModal({ onAddTransaction }: AddTransactionModalProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
+  const [notes, setNotes] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
@@ -42,6 +44,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
 
     onAddTransaction({
       title,
+      notes,
       amount: parseFloat(amount),
       category,
       date,
@@ -50,6 +53,7 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
 
     // Reset form
     setTitle('')
+    setNotes('')
     setAmount('')
     setCategory('')
     setDate(new Date().toISOString().split('T')[0])
@@ -129,6 +133,16 @@ export function AddTransactionModal({ onAddTransaction }: AddTransactionModalPro
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notizen <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Zusätzliche Informationen..."
+                rows={3}
               />
             </div>
           </div>

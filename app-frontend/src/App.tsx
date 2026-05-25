@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
+import { Toaster } from '@/components/ui/toaster'
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -24,11 +25,16 @@ function App() {
     setUserName('')
   }
 
-  if (!token) {
-    return <Login onLoginSuccess={handleLoginSuccess} />
-  }
-
-  return <BudgetDashboard onLogout={handleLogout} userName={userName} />
+  return (
+    <>
+      {token ? (
+        <BudgetDashboard onLogout={handleLogout} userName={userName} />
+      ) : (
+        <Login onLoginSuccess={handleLoginSuccess} />
+      )}
+      <Toaster />
+    </>
+  )
 }
 
 export default App
