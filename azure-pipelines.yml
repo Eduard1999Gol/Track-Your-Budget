@@ -1,0 +1,15 @@
+trigger:
+- main
+
+# Hier sagen wir Azure DevOps, dass es DEINEN lokalen Agent nutzen soll
+pool:
+  name: 'Default' # Name des Pools, in dem dein lokaler Agent registriert ist
+
+steps:
+- script: echo "Hallo Welt aus der Pipeline auf meinem eigenen PC!"
+  displayName: 'Erster Testlauf'
+
+- script: |
+    echo "Hier kannst du jetzt Build-Befehle ausführen,"
+    echo "die zu deiner Programmiersprache passen!"
+  displayName: 'Mehrzeiliger Befehl'
