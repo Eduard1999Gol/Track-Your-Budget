@@ -1,0 +1,35 @@
+export interface Transaction {
+  id: string
+  title: string
+  notes: string
+  amount: number
+  category: string
+  date: string
+  type: 'income' | 'expense'
+}
+
+export interface MonthlyData {
+  month: string
+  income: number
+  expense: number
+}
+
+export const CATEGORIES = [
+  { value: 'gehalt', label: 'Gehalt' },
+  { value: 'miete', label: 'Miete' },
+  { value: 'lebensmittel', label: 'Lebensmittel' },
+  { value: 'transport', label: 'Transport' },
+  { value: 'unterhaltung', label: 'Unterhaltung' },
+  { value: 'versicherung', label: 'Versicherung' },
+  { value: 'sonstiges', label: 'Sonstiges' },
+] as const
+
+export const CATEGORY_COLORS: Record<string, string> = {
+  gehalt: 'bg-primary',
+  miete: 'bg-chart-4',
+  lebensmittel: 'bg-chart-2',
+  transport: 'bg-chart-3',
+  unterhaltung: 'bg-chart-5',
+  versicherung: 'bg-chart-1',
+  sonstiges: 'bg-muted-foreground',
+}
