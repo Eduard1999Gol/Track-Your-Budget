@@ -1,9 +1,12 @@
 trigger:
 - main
 
-# Hier sagen wir Azure DevOps, dass es DEINEN lokalen Agent nutzen soll
+# Neu hinzugefügt: Löst die Pipeline bei jedem PR aus, der in den main-Branch will
+pr:
+- main
+
 pool:
-  name: 'Default' # Name des Pools, in dem dein lokaler Agent registriert ist
+  name: 'Default'
 
 steps:
 - script: echo "Hallo Welt aus der Pipeline auf meinem eigenen PC!"
