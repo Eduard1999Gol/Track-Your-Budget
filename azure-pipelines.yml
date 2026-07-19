@@ -1,7 +1,6 @@
 trigger:
 - main
 
-# Neu hinzugefügt: Löst die Pipeline bei jedem PR aus, der in den main-Branch will
 pr:
 - main
 
