@@ -1,0 +1,18 @@
+trigger:
+- main
+
+# Neu hinzugefügt: Löst die Pipeline bei jedem PR aus, der in den main-Branch will
+pr:
+- main
+
+pool:
+  name: 'Default'
+
+steps:
+- script: echo "Hallo Welt aus der Pipeline auf meinem eigenen PC!"
+  displayName: 'Erster Testlauf'
+
+- script: |
+    echo "Hier kannst du jetzt Build-Befehle ausführen,"
+    echo "die zu deiner Programmiersprache passen!"
+  displayName: 'Mehrzeiliger Befehl'
