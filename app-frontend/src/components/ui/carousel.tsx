@@ -90,6 +90,7 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api || !setApi) return
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     setApi(api)
   }, [api, setApi])
 

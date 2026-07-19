@@ -24,7 +24,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       let data
       try {
         data = JSON.parse(responseText)
-      } catch (e) {
+      } catch (_e) {
         console.error('Failed to parse response as JSON. Response was:', responseText)
         return
       }

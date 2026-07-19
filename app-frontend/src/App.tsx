@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
 import { Toaster } from '@/components/ui/toaster'
@@ -14,13 +14,13 @@ function App() {
   )
   const { toast } = useToast()
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_name')
     setToken(null)
     setUserName('')
-  }
+  }, [])
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
@@ -31,7 +31,7 @@ function App() {
       })
       handleLogout()
     })
-  }, [])
+  }, [toast, handleLogout])
 
   const handleLoginSuccess = (newToken: string, newUserName: string) => {
     localStorage.setItem('auth_token', newToken)
