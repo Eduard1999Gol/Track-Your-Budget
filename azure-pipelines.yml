@@ -9,6 +9,9 @@ pool:
 
 variables:
 - group: budget-tracker-secretes
+# Set a custom global variable for npm's cache directory location
+- name: npm_config_cache
+  value: $(Pipeline.Workspace)/.npm
 
 stages:
 
@@ -20,9 +23,16 @@ stages:
   - job: Frontend_Test
     displayName: 'Frontend — Lint'
     steps:
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | app-frontend/package-lock.json'
+        restoreKeys: 'npm | "$(Agent.OS)"'
+        path: $(npm_config_cache) # Correct: Cache the npm cache, not node_modules
+      displayName: 'Cache npm directory'
+
     - script: |
         cd app-frontend
-        npm ci
+        npm ci # npm ci will now pulled zipped packages directly from $(npm_config_cache)
       displayName: 'Install dependencies'
 
     - script: |
@@ -33,12 +43,22 @@ stages:
   - job: Backend_Test
     displayName: 'Backend — Check & Test'
     steps:
+    - task: Cache@2
+      inputs:
+        key: 'pip | "$(Agent.OS)" | backend/requirements.txt'
+        restoreKeys: 'pip | "$(Agent.OS)"'
+        path: backend/venv
+        cacheHitVar: PIP_CACHE_HIT # Creates a variable we can check in the next step
+      displayName: 'Cache venv'
+
     - script: |
         cd backend
         python3 -m venv venv
         source venv/bin/activate
         pip install -r requirements.txt
-      displayName: 'Install dependencies'
+      # Crucial: Only run this whole step if requirements.txt actually changed!
+      condition: ne(variables['PIP_CACHE_HIT'], 'true') 
+      displayName: 'Install dependencies (Skip if Cache Hit)'
 
     - script: |
         cd backend
@@ -79,6 +99,13 @@ stages:
   - job: Build_Frontend
     displayName: 'Frontend — Build & Publish Artifact'
     steps:
+    - task: Cache@2
+      inputs:
+        key: 'npm | "$(Agent.OS)" | app-frontend/package-lock.json'
+        restoreKeys: 'npm | "$(Agent.OS)"'
+        path: $(npm_config_cache) # Match the exact same fixed caching path here
+      displayName: 'Cache npm directory'
+
     - script: |
         cd app-frontend
         npm ci
