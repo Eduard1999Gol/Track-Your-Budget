@@ -118,3 +118,43 @@ stages:
         artifact: 'frontend-dist'
         publishLocation: 'pipeline'
       displayName: 'Publish dist/ as pipeline artifact'
+
+# ── STAGE 3: DEPLOY ───────────────────────────────────────────────────────────
+- stage: Deploy
+  displayName: 'Deploy — Push to Docker Hub'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+
+  - deployment: Push_Images
+    displayName: 'Build & push Docker images'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: Docker@2
+            displayName: 'Build & push frontend'
+            inputs:
+              command: buildAndPush
+              containerRegistry: 'DockerHub-Connection'   
+              repository: 'eduardgohl/sandbox-repo'
+              dockerfile: 'app-frontend/Dockerfile'
+              context: 'app-frontend'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Build & push backend'
+            inputs:
+              command: buildAndPush
+              containerRegistry: 'DockerHub-Connection'
+              repository: 'eduardgohl/sandbox-repo'
+              dockerfile: 'backend/Dockerfile'
+              context: 'backend'
+              tags: |
+                $(Build.BuildId)
+                latest
