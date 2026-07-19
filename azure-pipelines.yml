@@ -32,7 +32,7 @@ stages:
 
     - script: |
         cd app-frontend
-        npm ci # npm ci will now pulled zipped packages directly from $(npm_config_cache)
+        npm ci 
       displayName: 'Install dependencies'
 
     - script: |
