@@ -71,7 +71,7 @@ export function ExpenseChart({ data, isLoading }: ExpenseChartProps) {
                   borderRadius: '8px',
                   color: 'oklch(0.95 0 0)',
                 }}
-                formatter={(value: number) => [formatCurrency(value)]}
+                formatter={(value: any) => [formatCurrency(value as number)]}
                 labelStyle={{ color: 'oklch(0.95 0 0)' }}
               />
               <Legend
