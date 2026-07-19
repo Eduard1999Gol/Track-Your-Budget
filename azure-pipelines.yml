@@ -140,7 +140,7 @@ stages:
             inputs:
               command: buildAndPush
               containerRegistry: 'DockerHub-Connection'   
-              repository: 'eduardgohl/sandbox-repo'
+              repository: 'eduardgohl/budget-tracker-frontend'
               dockerfile: 'app-frontend/Dockerfile'
               context: 'app-frontend'
               tags: |
@@ -152,7 +152,7 @@ stages:
             inputs:
               command: buildAndPush
               containerRegistry: 'DockerHub-Connection'
-              repository: 'eduardgohl/sandbox-repo'
+              repository: 'eduardgohl/budget-tracker-backend'
               dockerfile: 'backend/Dockerfile'
               context: 'backend'
               tags: |
