@@ -8,60 +8,86 @@ pool:
   name: 'Default'
 
 variables:
-- group: budget-tracker-secretes   # links the Variable Group from Step 1
+- group: budget-tracker-secretes
 
-steps:
+stages:
 
-# ── FRONTEND ──────────────────────────────────────────────
-- script: |
-    cd app-frontend
-    npm ci
-  displayName: 'Frontend: Install dependencies'
+# ── STAGE 1: TEST ─────────────────────────────────────────────────────────────
+- stage: Test
+  displayName: 'Test'
+  jobs:
 
-- script: |
-    cd app-frontend
-    npm run lint
-  displayName: 'Frontend: Lint'
+  - job: Frontend_Test
+    displayName: 'Frontend — Lint'
+    steps:
+    - script: |
+        cd app-frontend
+        npm ci
+      displayName: 'Install dependencies'
 
-- script: |
-    cd app-frontend
-    npm run build
-  displayName: 'Frontend: Build (TypeScript + Vite)'
+    - script: |
+        cd app-frontend
+        npm run lint
+      displayName: 'Lint'
 
-# ── BACKEND ───────────────────────────────────────────────
-- script: |
-    cd backend
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-  displayName: 'Backend: Install dependencies'
+  - job: Backend_Test
+    displayName: 'Backend — Check & Test'
+    steps:
+    - script: |
+        cd backend
+        python3 -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
 
-- script: |
-    cd backend
-    source venv/bin/activate
-    python manage.py check
-  displayName: 'Backend: Django check'
-  env:
-    DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
-    GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
-    GOOGLE_SECRET: $(GOOGLE_SECRET)
-    POSTGRES_DB: $(POSTGRES_DB)
-    POSTGRES_USER: $(POSTGRES_USER)
-    POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
-    POSTGRES_HOST: $(POSTGRES_HOST)
-    POSTGRES_PORT: $(POSTGRES_PORT)
+    - script: |
+        cd backend
+        source venv/bin/activate
+        python manage.py check
+      displayName: 'Django check'
+      env:
+        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
+        GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
+        GOOGLE_SECRET: $(GOOGLE_SECRET)
+        POSTGRES_DB: $(POSTGRES_DB)
+        POSTGRES_USER: $(POSTGRES_USER)
+        POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
+        POSTGRES_HOST: $(POSTGRES_HOST)
+        POSTGRES_PORT: $(POSTGRES_PORT)
 
-- script: |
-    cd backend
-    source venv/bin/activate
-    python manage.py test
-  displayName: 'Backend: Run tests'
-  env:
-    DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
-    GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
-    GOOGLE_SECRET: $(GOOGLE_SECRET)
-    POSTGRES_DB: $(POSTGRES_DB)
-    POSTGRES_USER: $(POSTGRES_USER)
-    POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
-    POSTGRES_HOST: $(POSTGRES_HOST)
-    POSTGRES_PORT: $(POSTGRES_PORT)
+    - script: |
+        cd backend
+        source venv/bin/activate
+        python manage.py test
+      displayName: 'Run tests'
+      env:
+        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
+        GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
+        GOOGLE_SECRET: $(GOOGLE_SECRET)
+        POSTGRES_DB: $(POSTGRES_DB)
+        POSTGRES_USER: $(POSTGRES_USER)
+        POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
+        POSTGRES_HOST: $(POSTGRES_HOST)
+        POSTGRES_PORT: $(POSTGRES_PORT)
+
+# ── STAGE 2: BUILD ────────────────────────────────────────────────────────────
+- stage: Build
+  displayName: 'Build'
+  dependsOn: Test
+  jobs:
+
+  - job: Build_Frontend
+    displayName: 'Frontend — Build & Publish Artifact'
+    steps:
+    - script: |
+        cd app-frontend
+        npm ci
+        npm run build
+      displayName: 'TypeScript + Vite build'
+
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'app-frontend/dist'
+        artifact: 'frontend-dist'
+        publishLocation: 'pipeline'
+      displayName: 'Publish dist/ as pipeline artifact'
