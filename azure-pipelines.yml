@@ -8,7 +8,7 @@ pool:
   name: 'Default'
 
 variables:
-- group: budget-tracker-secrets   # links the Variable Group from Step 1
+- group: budget-tracker-secretes   # links the Variable Group from Step 1
 
 steps:
 
