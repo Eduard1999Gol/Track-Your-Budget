@@ -9,15 +9,16 @@ pool:
 
 variables:
 - group: budget-tracker-secretes
-# Set a custom global variable for npm's cache directory location
 - name: npm_config_cache
   value: $(Pipeline.Workspace)/.npm
+- name: PIP_CACHE_DIR
+  value: $(Pipeline.Workspace)/.pip
 
 stages:
 
-# ── STAGE 1: TEST ─────────────────────────────────────────────────────────────
+# ── STAGE 1: TEST & LINT ──────────────────────────────────────────────────────
 - stage: Test
-  displayName: 'Test'
+  displayName: 'Test & Lint'
   jobs:
 
   - job: Frontend_Test
@@ -27,18 +28,14 @@ stages:
       inputs:
         key: 'npm | "$(Agent.OS)" | app-frontend/package-lock.json'
         restoreKeys: 'npm | "$(Agent.OS)"'
-        path: $(npm_config_cache) # Correct: Cache the npm cache, not node_modules
-      displayName: 'Cache npm directory'
+        path: $(npm_config_cache)
+      displayName: 'Cache npm'
 
     - script: |
         cd app-frontend
-        npm ci 
-      displayName: 'Install dependencies'
-
-    - script: |
-        cd app-frontend
+        npm ci
         npm run lint
-      displayName: 'Lint'
+      displayName: 'Install & Lint'
 
   - job: Backend_Test
     displayName: 'Backend — Check & Test'
@@ -47,39 +44,22 @@ stages:
       inputs:
         key: 'pip | "$(Agent.OS)" | backend/requirements.txt'
         restoreKeys: 'pip | "$(Agent.OS)"'
-        path: backend/venv
-        cacheHitVar: PIP_CACHE_HIT # Creates a variable we can check in the next step
-      displayName: 'Cache venv'
+        path: $(PIP_CACHE_DIR)
+      displayName: 'Cache pip'
 
     - script: |
-        cd backend
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-      # Crucial: Only run this whole step if requirements.txt actually changed!
-      condition: ne(variables['PIP_CACHE_HIT'], 'true') 
-      displayName: 'Install dependencies (Skip if Cache Hit)'
+        python3 -m venv backend/venv
+        source backend/venv/bin/activate
+        pip install --cache-dir $(PIP_CACHE_DIR) -r backend/requirements.txt
+      displayName: 'Install dependencies'
 
+    # Check & Test zusammengefasst, um Variablen-Redundanz zu vermeiden
     - script: |
+        source backend/venv/bin/activate
         cd backend
-        source venv/bin/activate
         python manage.py check
-      displayName: 'Django check'
-      env:
-        DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
-        GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
-        GOOGLE_SECRET: $(GOOGLE_SECRET)
-        POSTGRES_DB: $(POSTGRES_DB)
-        POSTGRES_USER: $(POSTGRES_USER)
-        POSTGRES_PASSWORD: $(POSTGRES_PASSWORD)
-        POSTGRES_HOST: $(POSTGRES_HOST)
-        POSTGRES_PORT: $(POSTGRES_PORT)
-
-    - script: |
-        cd backend
-        source venv/bin/activate
         python manage.py test
-      displayName: 'Run tests'
+      displayName: 'Django Check & Run Tests'
       env:
         DJANGO_SECRET_KEY: $(DJANGO_SECRET_KEY)
         GOOGLE_CLIENT_ID: $(GOOGLE_CLIENT_ID)
@@ -90,44 +70,17 @@ stages:
         POSTGRES_HOST: $(POSTGRES_HOST)
         POSTGRES_PORT: $(POSTGRES_PORT)
 
-# ── STAGE 2: BUILD ────────────────────────────────────────────────────────────
-- stage: Build
-  displayName: 'Build'
-  dependsOn: Test
-  jobs:
 
-  - job: Build_Frontend
-    displayName: 'Frontend — Build & Publish Artifact'
-    steps:
-    - task: Cache@2
-      inputs:
-        key: 'npm | "$(Agent.OS)" | app-frontend/package-lock.json'
-        restoreKeys: 'npm | "$(Agent.OS)"'
-        path: $(npm_config_cache) # Match the exact same fixed caching path here
-      displayName: 'Cache npm directory'
-
-    - script: |
-        cd app-frontend
-        npm ci
-        npm run build
-      displayName: 'TypeScript + Vite build'
-
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: 'app-frontend/dist'
-        artifact: 'frontend-dist'
-        publishLocation: 'pipeline'
-      displayName: 'Publish dist/ as pipeline artifact'
-
-# ── STAGE 3: DEPLOY ───────────────────────────────────────────────────────────
+# ── STAGE 2: DEPLOY (BUILD & PUSH DOCKER IMAGES) ──────────────────────────────
 - stage: Deploy
-  displayName: 'Deploy — Push to Docker Hub'
-  dependsOn: Build
+  displayName: 'Build & Push Docker Images'
+  dependsOn: Test
+  # Wird nur ausgeführt, wenn Tests bestanden sind UND es der main-Branch ist (kein PR-Build)
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
 
   - deployment: Push_Images
-    displayName: 'Build & push Docker images'
+    displayName: 'Build & Push to Docker Hub'
     environment: 'production'
     strategy:
       runOnce:
@@ -136,7 +89,7 @@ stages:
           - checkout: self
 
           - task: Docker@2
-            displayName: 'Build & push frontend'
+            displayName: 'Build & Push Frontend'
             inputs:
               command: buildAndPush
               containerRegistry: 'DockerHub-Connection'   
@@ -148,7 +101,7 @@ stages:
                 latest
 
           - task: Docker@2
-            displayName: 'Build & push backend'
+            displayName: 'Build & Push Backend'
             inputs:
               command: buildAndPush
               containerRegistry: 'DockerHub-Connection'
