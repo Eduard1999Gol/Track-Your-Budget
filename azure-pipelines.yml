@@ -89,25 +89,25 @@ stages:
           - checkout: self
 
           - task: Docker@2
-            displayName: 'Build & Push Frontend'
+            displayName: 'Login to Docker Hub'
             inputs:
-              command: buildAndPush
+              command: login
               containerRegistry: 'DockerHub-Connection'
-              repository: 'eduardgohl/budget-tracker-frontend'
-              dockerfile: 'app-frontend/Dockerfile'
-              buildContext: 'app-frontend'
-              tags: |
-                $(Build.BuildId)
-                latest
 
-          - task: Docker@2
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
+                -t eduardgohl/budget-tracker-frontend:latest \
+                -f app-frontend/Dockerfile app-frontend
+              docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
+              docker push eduardgohl/budget-tracker-frontend:latest
+            displayName: 'Build & Push Frontend'
+
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-backend:$(Build.BuildId) \
+                -t eduardgohl/budget-tracker-backend:latest \
+                -f backend/Dockerfile backend
+              docker push eduardgohl/budget-tracker-backend:$(Build.BuildId)
+              docker push eduardgohl/budget-tracker-backend:latest
             displayName: 'Build & Push Backend'
-            inputs:
-              command: buildAndPush
-              containerRegistry: 'DockerHub-Connection'
-              repository: 'eduardgohl/budget-tracker-backend'
-              dockerfile: 'backend/Dockerfile'
-              buildContext: 'backend'
-              tags: |
-                $(Build.BuildId)
-                latest
