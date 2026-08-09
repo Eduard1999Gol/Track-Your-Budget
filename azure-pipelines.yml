@@ -8,7 +8,7 @@ pool:
   name: 'Default'
 
 variables:
-- group: budget-tracker-secretes
+- group: budget-tracker-secrets
 - name: npm_config_cache
   value: $(Pipeline.Workspace)/.npm
 - name: PIP_CACHE_DIR
@@ -111,3 +111,35 @@ stages:
               docker push eduardgohl/budget-tracker-backend:$(Build.BuildId)
               docker push eduardgohl/budget-tracker-backend:latest
             displayName: 'Build & Push Backend'
+
+
+# ── STAGE 3: UPDATE MANIFEST REPO ─────────────────────────────────────────────
+- stage: UpdateManifests
+  displayName: 'Update Kubernetes Manifests'
+  dependsOn: Deploy
+  condition: succeeded()
+  jobs:
+  - job: PatchImageTags
+    displayName: 'Patch image tags in manifest repo'
+    steps:
+    - checkout: none
+
+    - script: |
+        # Manifest-Repo klonen (HTTPS mit PAT)
+        REPO_URL="https://$(MANIFEST_REPO_PAT)@dev.azure.com/edodevops0169/TackYourBudget/_git/app-manifests"
+        git clone "$REPO_URL" manifests
+        cd manifests
+
+        # Image-Tags auf aktuelle Build-ID setzen
+        sed -i "s|eduardgohl/budget-tracker-frontend:[^ ]*|eduardgohl/budget-tracker-frontend:$(Build.BuildId)|g" frontend.yaml
+        sed -i "s|eduardgohl/budget-tracker-backend:[^ ]*|eduardgohl/budget-tracker-backend:$(Build.BuildId)|g" backend.yaml
+
+        # Commit & Push
+        git config user.email "pipeline@devops"
+        git config user.name "Azure Pipeline"
+        git add frontend.yaml backend.yaml
+        git commit -m "chore: update image tags to $(Build.BuildId) [skip ci]"
+        git push
+      displayName: 'Update image tags and push'
+      env:
+        MANIFEST_REPO_PAT: $(MANIFEST_REPO_PAT)
