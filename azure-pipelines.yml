@@ -130,16 +130,17 @@ stages:
         git clone "$REPO_URL" manifests
         cd manifests
 
-        # Image-Tags auf aktuelle Build-ID setzen
-        sed -i "s|eduardgohl/budget-tracker-frontend:[^ ]*|eduardgohl/budget-tracker-frontend:$(Build.BuildId)|g" frontend.yaml
-        sed -i "s|eduardgohl/budget-tracker-backend:[^ ]*|eduardgohl/budget-tracker-backend:$(Build.BuildId)|g" backend.yaml
+        # Image-Tags auf aktuelle Build-ID setzen (mit k8s/ Pfad!)
+        sed -i "s|eduardgohl/budget-tracker-frontend:[^ ]*|eduardgohl/budget-tracker-frontend:$(Build.BuildId)|g" k8s/frontend.yaml
+        sed -i "s|eduardgohl/budget-tracker-backend:[^ ]*|eduardgohl/budget-tracker-backend:$(Build.BuildId)|g" k8s/backend.yaml
 
         # Commit & Push
         git config user.email "pipeline@devops"
         git config user.name "Azure Pipeline"
-        git add frontend.yaml backend.yaml
+        git add k8s/frontend.yaml k8s/backend.yaml
         git commit -m "chore: update image tags to $(Build.BuildId) [skip ci]"
         git push
       displayName: 'Update image tags and push'
       env:
+        # Dies stellt sicher, dass das Secret sicher an das Skript übergeben wird
         MANIFEST_REPO_PAT: $(MANIFEST_REPO_PAT)
