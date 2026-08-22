@@ -118,7 +118,7 @@ stages:
     - checkout: none
     - script: |
         # 1. Manifest-Repo klonen
-        REPO_URL="https://$(MANIFEST_REPO_PAT)@test.azure.com/edotestops0169/TackYourBudget/_git/app-manifests"
+        REPO_URL="https://$(MANIFEST_REPO_PAT)@dev.azure.com/edodevops0169/TackYourBudget/_git/app-manifests"
         git clone "$REPO_URL" manifests
         cd manifests
 
