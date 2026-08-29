@@ -117,6 +117,7 @@ stages:
               command: login
               containerRegistry: 'DockerHub-Connection'
           - script: |
+          
               docker build \
                 -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
                 -t eduardgohl/budget-tracker-frontend:latest \
