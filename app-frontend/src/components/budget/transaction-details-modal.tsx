@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -54,17 +54,20 @@ export function TransactionDetailsModal({
   const [category, setCategory] = useState('')
   const [date, setDate] = useState('')
   const [type, setType] = useState<'income' | 'expense'>('expense')
+  const [prevTransaction, setPrevTransaction] = useState(transaction)
 
-  useEffect(() => {
-    if (!transaction) return
-    setTitle(transaction.title)
-    setNotes(transaction.notes)
-    setAmount(String(transaction.amount))
-    setCategory(transaction.category)
-    setDate(transaction.date)
-    setType(transaction.type)
-    setIsEditing(false)
-  }, [transaction])
+  if (prevTransaction !== transaction) {
+    setPrevTransaction(transaction)
+    if (transaction) {
+      setTitle(transaction.title)
+      setNotes(transaction.notes)
+      setAmount(String(transaction.amount))
+      setCategory(transaction.category)
+      setDate(transaction.date)
+      setType(transaction.type)
+      setIsEditing(false)
+    }
+  }
 
   const handleSave = (event: React.FormEvent) => {
     event.preventDefault()
