@@ -75,8 +75,36 @@ stages:
   # Wird ausgeführt, wenn Tests bestanden sind UND es main oder test ist
   condition: and(succeeded(), in(variables['Build.SourceBranch'], 'refs/heads/main', 'refs/heads/test'))
   jobs:
-  - deployment: Push_Images
-    displayName: 'Build & Push to Docker Hub'
+  - deployment: Push_Images_Staging
+    displayName: 'Build & Push (staging)'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/test')
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+          - task: Docker@2
+            displayName: 'Login to Docker Hub'
+            inputs:
+              command: login
+              containerRegistry: 'DockerHub-Connection'
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
+                -f app-frontend/Dockerfile app-frontend
+              docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
+            displayName: 'Build & Push Frontend'
+          - script: |
+              docker build \
+                -t eduardgohl/budget-tracker-backend:$(Build.BuildId) \
+                -f backend/Dockerfile backend
+              docker push eduardgohl/budget-tracker-backend:$(Build.BuildId)
+            displayName: 'Build & Push Backend'
+
+  - deployment: Push_Images_Prod
+    displayName: 'Build & Push (production)'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
     environment: 'production'
     strategy:
       runOnce:
