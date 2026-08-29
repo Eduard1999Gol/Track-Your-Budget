@@ -162,6 +162,11 @@ export default function BudgetDashboard({ onLogout, userName }: { onLogout: () =
 
         {/* Overview Cards */}
         <section className="mb-8">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
+            <span className=" font-semibold text-primary capitalize">
+              {now.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
           <OverviewCards
             balance={balance}
             income={totals.income}
