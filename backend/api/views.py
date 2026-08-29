@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from datetime import date
+from .models import Transaction
 from .serializers import TransactionSerializer
 
 GERMAN_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
@@ -83,6 +84,31 @@ class TransactionView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TransactionDetailView(APIView):
+    def get_object(self, request, pk):
+        try:
+            return request.user.transactions.get(pk=pk)
+        except Transaction.DoesNotExist:
+            return None
+
+    def put(self, request, pk):
+        transaction = self.get_object(request, pk)
+        if transaction is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        serializer = TransactionSerializer(transaction, data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        transaction = self.get_object(request, pk)
+        if transaction is None:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        transaction.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MonthlySummaryView(APIView):
