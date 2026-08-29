@@ -19,6 +19,18 @@ import {
 } from '@/components/ui/select'
 import { Pencil, Save, Trash2 } from 'lucide-react'
 import { CATEGORIES, type Transaction } from '@/lib/types'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null
@@ -37,6 +49,7 @@ export function TransactionDetailsModal({
 }: TransactionDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [title, setTitle] = useState('')
+  const [notes, setNotes] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState('')
@@ -45,6 +58,7 @@ export function TransactionDetailsModal({
   useEffect(() => {
     if (!transaction) return
     setTitle(transaction.title)
+    setNotes(transaction.notes)
     setAmount(String(transaction.amount))
     setCategory(transaction.category)
     setDate(transaction.date)
@@ -59,6 +73,7 @@ export function TransactionDetailsModal({
     onUpdateTransaction({
       ...transaction,
       title: title.trim(),
+      notes,
       amount: Number.parseFloat(amount),
       category,
       date,
@@ -96,6 +111,10 @@ export function TransactionDetailsModal({
               <Input id="detail-title" disabled={!isEditing} value={title} onChange={(event) => setTitle(event.target.value)} />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="detail-notes">Beschreibung</Label>
+              <Textarea id="detail-notes" disabled={!isEditing} value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Keine Beschreibung" />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="detail-amount">Betrag (€)</Label>
               <Input id="detail-amount" disabled={!isEditing} type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
             </div>
@@ -111,27 +130,41 @@ export function TransactionDetailsModal({
               <Input id="detail-date" disabled={!isEditing} type="date" value={date} onChange={(event) => setDate(event.target.value)} />
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:justify-between">
-            {!isEditing && (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => {
-                  onDeleteTransaction(transaction.id)
-                  onOpenChange(false)
-                }}
-              >
-                <Trash2 data-icon="inline-start" />Löschen
-              </Button>
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            {isEditing ? (
+              <Button key="save" className="w-full" type="submit"><Save data-icon="inline-start" />Speichern</Button>
+            ) : (
+              <Button key="edit" className="w-full" type="button" onClick={() => setIsEditing(true)}><Pencil data-icon="inline-start" />Bearbeiten</Button>
             )}
-            <div className="flex gap-2 sm:ml-auto">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Schließen</Button>
-              {isEditing ? (
-                <Button type="submit"><Save data-icon="inline-start" />Speichern</Button>
-              ) : (
-                <Button type="button" onClick={() => setIsEditing(true)}><Pencil data-icon="inline-start" />Bearbeiten</Button>
-              )}
-            </div>
+            {!isEditing && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button className="w-full" type="button" variant="destructive-outline">
+                    <Trash2 data-icon="inline-start" />Löschen
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Transaktion löschen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Diese Aktion kann nicht rückgängig gemacht werden.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-white hover:bg-destructive/90"
+                      onClick={() => {
+                        onDeleteTransaction(transaction.id)
+                        onOpenChange(false)
+                      }}
+                    >
+                      Löschen
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>
