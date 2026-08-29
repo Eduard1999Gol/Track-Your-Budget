@@ -27,7 +27,7 @@ load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -99,8 +99,6 @@ ACCOUNT_USERNAME_REQUIRED = False
 # Automatically link a Google sign-in to an existing account if emails match
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-
-CALLBACK_URL = os.getenv('CALLBACK_URL', 'http://localhost:5173')
 
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
