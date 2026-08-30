@@ -91,6 +91,7 @@ stages:
               containerRegistry: 'DockerHub-Connection'
           - script: |
               docker build \
+                --build-arg VITE_GOOGLE_CLIENT_ID=$(GOOGLE_CLIENT_ID) \
                 -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
                 -f app-frontend/Dockerfile app-frontend
               docker push eduardgohl/budget-tracker-frontend:$(Build.BuildId)
@@ -119,6 +120,7 @@ stages:
           - script: |
           
               docker build \
+                --build-arg VITE_GOOGLE_CLIENT_ID=$(GOOGLE_CLIENT_ID) \
                 -t eduardgohl/budget-tracker-frontend:$(Build.BuildId) \
                 -t eduardgohl/budget-tracker-frontend:latest \
                 -f app-frontend/Dockerfile app-frontend
