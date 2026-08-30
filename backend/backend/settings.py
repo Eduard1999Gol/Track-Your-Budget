@@ -39,18 +39,25 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
-
+    # Local apps
     'api',
-    'django.contrib.sites',
 
-    'rest_framework',
-    'rest_framework.authtoken',
-
+    # Auth & Social Apps
+    'allauth',
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 
+    # Third-party apps
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+
+    # Django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,16 +70,24 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),    
 }
 
-REST_USE_JWT = True
-REST_AUTH_TOKEN_MODEL = None
+REST_AUTH = {
+    'JWT_SERIALIZER': 'api.serializers.JWTSerializer',
+    'USE_JWT': True,
+    "JWT_AUTH_HTTPONLY":False,
+}
 
 from datetime import timedelta
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=4),
     'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -90,30 +105,6 @@ MIDDLEWARE = [
 
 SITE_ID = 1
 
-# Disable traditional email verification since Google handles email safety
-ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
-
-# Automatically link a Google sign-in to an existing account if emails match
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-
-# Add your Google Credentials safely
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APPS': [{
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'secret': os.getenv('GOOGLE_SECRET'),
-            'key': ''
-        }],
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
-    }
-}
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -121,6 +112,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 ROOT_URLCONF = 'backend.urls'
+
+GOOGLE_REDIRECT_URL="http://localhost:3000/"
 
 TEMPLATES = [
     {
@@ -191,3 +184,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media Files Setup
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
