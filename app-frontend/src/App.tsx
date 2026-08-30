@@ -4,6 +4,7 @@ import Login from './Login'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
 import { setUnauthorizedHandler } from '@/lib/apiClient'
+import type { AuthResult } from '@/lib/auth/types'
 
 function App() {
   const [token, setToken] = useState<string | null>(
@@ -33,11 +34,12 @@ function App() {
     })
   }, [toast, handleLogout])
 
-  const handleLoginSuccess = (newToken: string, newUserName: string) => {
-    localStorage.setItem('auth_token', newToken)
-    localStorage.setItem('user_name', newUserName)
-    setToken(newToken)
-    setUserName(newUserName)
+  const handleLoginSuccess = ({ accessToken, refreshToken, userName }: AuthResult) => {
+    localStorage.setItem('auth_token', accessToken)
+    localStorage.setItem('refresh_token', refreshToken)
+    localStorage.setItem('user_name', userName)
+    setToken(accessToken)
+    setUserName(userName)
   }
 
   return (
