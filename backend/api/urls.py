@@ -1,12 +1,13 @@
 from django.urls import path
 from dj_rest_auth.jwt_auth import get_refresh_view
 from dj_rest_auth.views import LogoutView
-from .views import GoogleLogin, GitHubLogin, TransactionView, TransactionDetailView, MonthlySummaryView, UserMe
+from .views import GoogleLogin, GitHubLogin, MicrosoftLogin, TransactionView, TransactionDetailView, MonthlySummaryView, UserMe
 
 urlpatterns = [
     # Social login endpoints
     path('google/login/', GoogleLogin.as_view(), name='google_login'),
     path('github/login/', GitHubLogin.as_view(), name='github_login'),
+    path('microsoft/login/', MicrosoftLogin.as_view(), name='microsoft_login'),
 
     path('users/me/', UserMe.as_view(), name='user_detail'),
     # Cookie-aware refresh: reads refresh from httpOnly cookie, rotates, sets new cookie.

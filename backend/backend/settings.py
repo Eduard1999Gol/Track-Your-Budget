@@ -48,7 +48,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.github',
-    'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.microsoft',
     'dj_rest_auth',
     'dj_rest_auth.registration',
 
@@ -111,6 +111,13 @@ MIDDLEWARE = [
 ]
 
 SITE_ID = 1
+
+# Social provider already authenticated the user; skip allauth's email
+# verification flow (which would otherwise require account_confirm_email URLs).
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = False
 
 
 CORS_ALLOWED_ORIGINS = [

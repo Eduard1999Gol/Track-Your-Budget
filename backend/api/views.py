@@ -9,15 +9,36 @@ from django.conf import settings
 from datetime import date
 from .models import Transaction
 from .serializers import TransactionSerializer
+import logging
 import os
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+from allauth.socialaccount.providers.microsoft.views import MicrosoftGraphOAuth2Adapter
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client, OAuth2Error
 from dj_rest_auth.registration.views import SocialLoginView
 from rest_framework.permissions import IsAuthenticated
 from .serializers import UserSerializer
 from django.conf import settings
-    
+
+logger = logging.getLogger(__name__)
+
+
+class LoggingOAuth2Client(OAuth2Client):
+    """OAuth2Client that logs the raw provider response on failure.
+
+    dj-rest-auth catches OAuth2Error and re-raises a generic ValidationError,
+    then DRF's is_valid() re-wraps it again, which drops __cause__. Logging at
+    the client layer is the only reliable way to see the real error body.
+    """
+
+    def get_access_token(self, code, *args, **kwargs):
+        try:
+            return super().get_access_token(code, *args, **kwargs)
+        except OAuth2Error as exc:
+            logger.error("OAuth2 token exchange failed: %s", exc)
+            raise
+
+
 GERMAN_MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
                  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
@@ -30,6 +51,11 @@ class GitHubLogin(SocialLoginView):
     adapter_class = GitHubOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = OAuth2Client
+
+class MicrosoftLogin(SocialLoginView):
+    adapter_class = MicrosoftGraphOAuth2Adapter
+    callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
+    client_class = LoggingOAuth2Client
 
 class UserMe(APIView):
     permission_classes = [IsAuthenticated]
