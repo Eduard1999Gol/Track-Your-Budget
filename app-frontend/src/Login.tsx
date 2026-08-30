@@ -1,13 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { LayoutDashboard } from 'lucide-react'
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons'
-import type { LoginSuccessHandler } from '@/lib/auth/types'
 
-interface LoginProps {
-  onLoginSuccess: LoginSuccessHandler
-}
-
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <Card className="w-full max-w-sm">
@@ -21,9 +16,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
-          <SocialLoginButtons onSuccess={onLoginSuccess} />
+          <SocialLoginButtons />
         </CardContent>
       </Card>
     </div>
   )
 }
+

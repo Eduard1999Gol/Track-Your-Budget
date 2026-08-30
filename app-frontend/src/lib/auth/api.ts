@@ -5,14 +5,14 @@ import type {
 } from './types'
 
 /**
- * Exchanges a provider-issued token for backend JWT tokens.
- * Backend contract: POST /api/auth/{provider}/  { access_token }
+ * Exchanges a provider-issued OAuth access token for backend JWT tokens.
+ * Backend contract (dj-rest-auth SocialLoginView): POST /api/{provider}/login/  { access_token }
  */
 export async function loginWithSocialProvider(
   provider: SocialProvider,
   providerToken: string,
 ): Promise<AuthResult> {
-  const response = await fetch(`/api/auth/${provider}/`, {
+  const response = await fetch(`/api/${provider}/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ access_token: providerToken }),
@@ -30,14 +30,12 @@ export async function loginWithSocialProvider(
     throw new Error(`Backend ${provider} login failed: ${responseText}`)
   }
 
-  const userName =
-    [data.user?.first_name, data.user?.last_name].filter(Boolean).join(' ') ||
-    data.user?.email ||
-    ''
+  if (!data.access || !data.refresh) {
+    throw new Error(`Backend ${provider} login response missing JWT tokens`)
+  }
 
   return {
     accessToken: data.access,
     refreshToken: data.refresh,
-    userName,
   }
 }
