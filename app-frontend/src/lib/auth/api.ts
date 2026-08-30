@@ -11,17 +11,18 @@ import type {
  *
  * Backend contract (dj-rest-auth SocialLoginView): POST /api/{provider}/login/
  *   - Google uses the implicit flow, so we forward its `access_token`.
- *   - GitHub only supports the authorization-code flow, so we forward its `code`
- *     and the backend exchanges it server-side using its client secret.
+ *   - GitHub and Microsoft only support the authorization-code flow, so we
+ *     forward the `code` and the backend exchanges it server-side using its
+ *     client secret.
  */
 export async function loginWithSocialProvider(
   provider: SocialProvider,
   credential: string,
 ): Promise<AuthResult> {
-  const payload =
-    provider === 'github'
-      ? { code: credential }
-      : { access_token: credential }
+  const usesAuthorizationCode = provider === 'github' || provider === 'microsoft'
+  const payload = usesAuthorizationCode
+    ? { code: credential }
+    : { access_token: credential }
 
   const response = await fetch(`/api/${provider}/login/`, {
     method: 'POST',

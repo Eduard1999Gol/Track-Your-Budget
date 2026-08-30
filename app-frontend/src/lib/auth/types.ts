@@ -1,4 +1,4 @@
-export type SocialProvider = 'google' | 'facebook' | 'github'
+export type SocialProvider = 'google' | 'github' | 'microsoft'
 
 export interface BackendAuthResponse {
   access: string

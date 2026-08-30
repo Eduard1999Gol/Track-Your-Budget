@@ -43,16 +43,23 @@ function captureOAuthHashOnce(): CapturedOAuth {
     const credential = params.get('access_token')
     const error = params.get('error')
     stripAuthArtifactsFromUrl()
+    sessionStorage.removeItem('oauth_provider')
     return { provider: 'google', credential, error }
   }
 
-  // GitHub (authorization-code flow) returns a code in the query string: ?code=...
+  // GitHub and Microsoft (authorization-code flow) both return `?code=...` in
+  // the query string. We disambiguate via a marker set by the button before
+  // redirecting; default to GitHub for backwards compatibility.
   const query = new URLSearchParams(window.location.search)
   const code = query.get('code')
   const queryError = query.get('error')
   if (code || queryError) {
+    const marker = sessionStorage.getItem('oauth_provider')
+    sessionStorage.removeItem('oauth_provider')
+    const provider: SocialProvider =
+      marker === 'microsoft' ? 'microsoft' : 'github'
     stripAuthArtifactsFromUrl()
-    return { provider: 'github', credential: code, error: queryError }
+    return { provider, credential: code, error: queryError }
   }
 
   return { provider: null, credential: null, error: null }
@@ -108,7 +115,12 @@ function App() {
     oauthHandled.current = true
 
     const provider = capturedOAuth.provider
-    const providerLabel = provider === 'github' ? 'GitHub' : 'Google'
+    const providerLabel =
+      provider === 'github'
+        ? 'GitHub'
+        : provider === 'microsoft'
+          ? 'Microsoft'
+          : 'Google'
 
     if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
       setAuthPending(false)

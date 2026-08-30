@@ -1,6 +1,6 @@
 import { GoogleLoginButton } from './GoogleLoginButton'
-import { FacebookLoginButton } from './FacebookLoginButton'
 import { GithubLoginButton } from './GithubLoginButton'
+import { MicrosoftLoginButton } from './MicrosoftLoginButton'
 
 /**
  * Renders every configured social login button. Add new providers by
@@ -11,8 +11,8 @@ export function SocialLoginButtons() {
   return (
     <div className="flex flex-col items-center gap-3 w-full">
       <GoogleLoginButton />
-      <FacebookLoginButton />
       <GithubLoginButton />
+      <MicrosoftLoginButton />
     </div>
   )
 }

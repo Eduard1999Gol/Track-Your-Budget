@@ -14,6 +14,7 @@ export function GithubLoginButton() {
   }
 
   const loginWithGithub = () => {
+    sessionStorage.setItem('oauth_provider', 'github')
     window.location.href = githubAuthUrl
   }
 

@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
  * Composes third-party auth SDK providers around the app.
  * Currently we use a pure OAuth 2.0 redirect flow (see GoogleLoginButton),
  * so no SDK provider is required. Kept as a passthrough so future SDK
- * providers (e.g. Facebook JS SDK) can be wrapped here without touching main.
+ * providers can be wrapped here without touching main.
  */
 interface AuthProvidersProps {
   children: ReactNode
