@@ -9,6 +9,7 @@ import apiClient, {
   setUnauthorizedHandler,
 } from '@/lib/apiClient'
 import { loginWithSocialProvider } from '@/lib/auth/api'
+import type { SocialProvider } from '@/lib/auth/types'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
 
@@ -18,29 +19,43 @@ interface CurrentUser {
 }
 
 // Captured at module load, BEFORE React renders. Otherwise the first render
-// would <Navigate> away from "/" and strip the hash from the URL before any
-// effect could read it.
+// would <Navigate> away from "/" and strip the hash/query from the URL before
+// any effect could read it.
 interface CapturedOAuth {
-  accessToken: string | null
+  provider: SocialProvider | null
+  credential: string | null
   error: string | null
 }
 
+function stripAuthArtifactsFromUrl() {
+  window.history.replaceState(null, '', window.location.pathname)
+}
+
 function captureOAuthHashOnce(): CapturedOAuth {
-  if (typeof window === 'undefined') return { accessToken: null, error: null }
-  const hash = window.location.hash
-  if (!hash || !hash.includes('access_token')) {
-    return { accessToken: null, error: null }
+  if (typeof window === 'undefined') {
+    return { provider: null, credential: null, error: null }
   }
-  const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
-  const accessToken = params.get('access_token')
-  const error = params.get('error')
-  // Strip the sensitive hash from the URL bar immediately.
-  window.history.replaceState(
-    null,
-    '',
-    window.location.pathname + window.location.search,
-  )
-  return { accessToken, error }
+
+  // Google (implicit flow) returns tokens in the URL hash: #access_token=...
+  const hash = window.location.hash
+  if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+    const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
+    const credential = params.get('access_token')
+    const error = params.get('error')
+    stripAuthArtifactsFromUrl()
+    return { provider: 'google', credential, error }
+  }
+
+  // GitHub (authorization-code flow) returns a code in the query string: ?code=...
+  const query = new URLSearchParams(window.location.search)
+  const code = query.get('code')
+  const queryError = query.get('error')
+  if (code || queryError) {
+    stripAuthArtifactsFromUrl()
+    return { provider: 'github', credential: code, error: queryError }
+  }
+
+  return { provider: null, credential: null, error: null }
 }
 
 const capturedOAuth = captureOAuthHashOnce()
@@ -67,9 +82,9 @@ function App() {
   }, [applyAccessToken])
 
   // Bootstrap: if a refresh cookie is present, silently get a fresh access token.
-  // Skipped when we're about to exchange a Google token instead.
+  // Skipped when we're about to exchange a social-login credential instead.
   useEffect(() => {
-    if (capturedOAuth.accessToken || capturedOAuth.error) return
+    if (capturedOAuth.credential || capturedOAuth.error) return
     let cancelled = false
     refreshAccessToken()
       .then((token) => {
@@ -86,30 +101,33 @@ function App() {
     }
   }, [applyAccessToken])
 
-  // Exchange the captured Google access_token for backend tokens.
+  // Exchange the captured social-login credential for backend tokens.
   useEffect(() => {
     if (oauthHandled.current) return
-    if (!capturedOAuth.accessToken && !capturedOAuth.error) return
+    if (!capturedOAuth.credential && !capturedOAuth.error) return
     oauthHandled.current = true
 
-    if (capturedOAuth.error) {
+    const provider = capturedOAuth.provider
+    const providerLabel = provider === 'github' ? 'GitHub' : 'Google'
+
+    if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
       setAuthPending(false)
       toast({
-        title: 'Google login failed',
-        description: capturedOAuth.error,
+        title: `${providerLabel} login failed`,
+        description: capturedOAuth.error ?? 'Missing authorization response.',
         variant: 'destructive',
       })
       return
     }
 
-    loginWithSocialProvider('google', capturedOAuth.accessToken as string)
+    loginWithSocialProvider(provider, capturedOAuth.credential)
       .then(({ accessToken }) => {
         applyAccessToken(accessToken)
       })
       .catch((err) => {
-        console.error('Google login failed:', err)
+        console.error(`${providerLabel} login failed:`, err)
         toast({
-          title: 'Google login failed',
+          title: `${providerLabel} login failed`,
           description: err instanceof Error ? err.message : String(err),
           variant: 'destructive',
         })

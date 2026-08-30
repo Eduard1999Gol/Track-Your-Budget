@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
     'dj_rest_auth',
     'dj_rest_auth.registration',
 
@@ -118,7 +119,7 @@ CORS_ALLOWED_ORIGINS = [
 
 ROOT_URLCONF = 'backend.urls'
 
-GOOGLE_REDIRECT_URL="http://localhost:3000/"
+SOCIAL_AUTH_REDIRECT_URL="http://localhost:5173/"
 
 TEMPLATES = [
     {
