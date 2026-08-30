@@ -33,9 +33,9 @@ export async function loginWithSocialProvider(
   const responseText = await response.text()
   let data: BackendAuthResponse | null = null
   if (responseText) {
-    try {
-      data = JSON.parse(responseText) as BackendAuthResponse
-    } catch {
+  try {
+    data = JSON.parse(responseText) as BackendAuthResponse
+  } catch {
       throw new Error(
         `Invalid JSON from ${provider} auth endpoint (HTTP ${response.status}): ${responseText}`,
       )
