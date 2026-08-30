@@ -5,7 +5,9 @@ import type {
 } from './types'
 
 /**
- * Exchanges a provider-issued OAuth access token for backend JWT tokens.
+ * Exchanges a provider-issued OAuth access token for a backend access token.
+ * The refresh token is delivered by the backend as an httpOnly cookie, so we
+ * MUST send credentials to receive/keep it.
  * Backend contract (dj-rest-auth SocialLoginView): POST /api/{provider}/login/  { access_token }
  */
 export async function loginWithSocialProvider(
@@ -15,6 +17,7 @@ export async function loginWithSocialProvider(
   const response = await fetch(`/api/${provider}/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ access_token: providerToken }),
   })
 
@@ -30,12 +33,9 @@ export async function loginWithSocialProvider(
     throw new Error(`Backend ${provider} login failed: ${responseText}`)
   }
 
-  if (!data.access || !data.refresh) {
-    throw new Error(`Backend ${provider} login response missing JWT tokens`)
+  if (!data.access) {
+    throw new Error(`Backend ${provider} login response missing access token`)
   }
 
-  return {
-    accessToken: data.access,
-    refreshToken: data.refresh,
-  }
+  return { accessToken: data.access }
 }

@@ -3,8 +3,8 @@ from .models import Transaction
 from django.contrib.auth.models import User
 
 class JWTSerializer(serializers.Serializer):
+    # Refresh token is delivered via httpOnly cookie (see REST_AUTH), not in the body.
     access = serializers.CharField()
-    refresh = serializers.CharField()
 
 class UserSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()

@@ -78,7 +78,12 @@ REST_FRAMEWORK = {
 REST_AUTH = {
     'JWT_SERIALIZER': 'api.serializers.JWTSerializer',
     'USE_JWT': True,
-    "JWT_AUTH_HTTPONLY":False,
+    # Refresh token lives ONLY in an httpOnly cookie; access token stays in JSON body.
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_SECURE': os.getenv('JWT_AUTH_SECURE', 'False') == 'True',
+    'SESSION_LOGIN': False,
 }
 
 from datetime import timedelta

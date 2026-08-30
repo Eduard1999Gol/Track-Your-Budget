@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import axios from 'axios'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
-import apiClient, { setUnauthorizedHandler } from '@/lib/apiClient'
+import apiClient, {
+  refreshAccessToken,
+  setAccessToken,
+  setUnauthorizedHandler,
+} from '@/lib/apiClient'
 import { loginWithSocialProvider } from '@/lib/auth/api'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
@@ -42,32 +47,53 @@ const capturedOAuth = captureOAuthHashOnce()
 
 function App() {
   const { toast } = useToast()
-  const [authToken, setAuthToken] = useState<string | null>(
-    () => localStorage.getItem('auth_token'),
-  )
+  const [authToken, setAuthToken] = useState<string | null>(null)
   const [userName, setUserName] = useState<string | undefined>(undefined)
-  const [oauthPending, setOauthPending] = useState<boolean>(
-    () => Boolean(capturedOAuth.accessToken),
-  )
+  // True while either bootstrapping a session or exchanging a Google token.
+  const [authPending, setAuthPending] = useState<boolean>(true)
   const oauthHandled = useRef(false)
+
+  const applyAccessToken = useCallback((token: string | null) => {
+    setAccessToken(token)
+    setAuthToken(token)
+  }, [])
 
   // Global handler: when apiClient can't refresh, clear session and bounce to /login
   useEffect(() => {
     setUnauthorizedHandler(() => {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('refresh_token')
-      setAuthToken(null)
+      applyAccessToken(null)
       setUserName(undefined)
     })
-  }, [])
+  }, [applyAccessToken])
 
-  // Exchange the captured Google access_token for backend JWTs.
+  // Bootstrap: if a refresh cookie is present, silently get a fresh access token.
+  // Skipped when we're about to exchange a Google token instead.
+  useEffect(() => {
+    if (capturedOAuth.accessToken || capturedOAuth.error) return
+    let cancelled = false
+    refreshAccessToken()
+      .then((token) => {
+        if (!cancelled) applyAccessToken(token)
+      })
+      .catch(() => {
+        // No valid refresh cookie — user just isn't logged in yet.
+      })
+      .finally(() => {
+        if (!cancelled) setAuthPending(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [applyAccessToken])
+
+  // Exchange the captured Google access_token for backend tokens.
   useEffect(() => {
     if (oauthHandled.current) return
+    if (!capturedOAuth.accessToken && !capturedOAuth.error) return
     oauthHandled.current = true
 
     if (capturedOAuth.error) {
-      setOauthPending(false)
+      setAuthPending(false)
       toast({
         title: 'Google login failed',
         description: capturedOAuth.error,
@@ -76,13 +102,9 @@ function App() {
       return
     }
 
-    if (!capturedOAuth.accessToken) return
-
-    loginWithSocialProvider('google', capturedOAuth.accessToken)
-      .then(({ accessToken, refreshToken }) => {
-        localStorage.setItem('auth_token', accessToken)
-        localStorage.setItem('refresh_token', refreshToken)
-        setAuthToken(accessToken)
+    loginWithSocialProvider('google', capturedOAuth.accessToken as string)
+      .then(({ accessToken }) => {
+        applyAccessToken(accessToken)
       })
       .catch((err) => {
         console.error('Google login failed:', err)
@@ -92,8 +114,8 @@ function App() {
           variant: 'destructive',
         })
       })
-      .finally(() => setOauthPending(false))
-  }, [toast])
+      .finally(() => setAuthPending(false))
+  }, [applyAccessToken, toast])
 
   // Load the current user's display name once we have a session
   useEffect(() => {
@@ -116,18 +138,20 @@ function App() {
     }
   }, [authToken])
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('refresh_token')
-    setAuthToken(null)
+  const handleLogout = useCallback(async () => {
+    try {
+      // Blacklists refresh + clears the httpOnly cookie server-side.
+      await axios.post('/api/auth/logout/', {}, { withCredentials: true })
+    } catch {
+      // Ignore — we clear local state regardless.
+    }
+    applyAccessToken(null)
     setUserName(undefined)
-  }, [])
+  }, [applyAccessToken])
 
   const isAuthenticated = Boolean(authToken)
 
-  // Don't route while we're still exchanging the Google token, otherwise the
-  // "/" route would flash a redirect to /login.
-  if (oauthPending) {
+  if (authPending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
         Signing you in…
