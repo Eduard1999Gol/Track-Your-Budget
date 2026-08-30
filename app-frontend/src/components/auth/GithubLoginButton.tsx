@@ -1,13 +1,7 @@
 import { Button } from '@/components/ui/button'
-import type { LoginSuccessHandler } from '@/lib/auth/types'
-
-interface GithubLoginButtonProps {
-  onSuccess: LoginSuccessHandler
-  onError?: (error: unknown) => void
-}
 
 // Placeholder until GitHub login is implemented.
-export function GithubLoginButton(_props: GithubLoginButtonProps) {
+export function GithubLoginButton() {
   return (
     <Button
       type="button"
@@ -23,3 +17,4 @@ export function GithubLoginButton(_props: GithubLoginButtonProps) {
     </Button>
   )
 }
+

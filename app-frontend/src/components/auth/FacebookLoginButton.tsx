@@ -1,13 +1,7 @@
 import { Button } from '@/components/ui/button'
-import type { LoginSuccessHandler } from '@/lib/auth/types'
-
-interface FacebookLoginButtonProps {
-  onSuccess: LoginSuccessHandler
-  onError?: (error: unknown) => void
-}
 
 // Placeholder until Facebook login is implemented.
-export function FacebookLoginButton(_props: FacebookLoginButtonProps) {
+export function FacebookLoginButton() {
   return (
     <Button
       type="button"
@@ -23,3 +17,4 @@ export function FacebookLoginButton(_props: FacebookLoginButtonProps) {
     </Button>
   )
 }
+

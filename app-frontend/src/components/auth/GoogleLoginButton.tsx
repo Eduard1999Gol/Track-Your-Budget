@@ -1,36 +1,38 @@
-import { GoogleLogin } from '@react-oauth/google'
-import type { CredentialResponse } from '@react-oauth/google'
-import { loginWithSocialProvider } from '@/lib/auth/api'
-import type { LoginSuccessHandler } from '@/lib/auth/types'
+import { Button } from '@/components/ui/button'
 
-interface GoogleLoginButtonProps {
-  onSuccess: LoginSuccessHandler
-  onError?: (error: unknown) => void
-}
+/**
+ * Redirects the browser to Google's OAuth 2.0 authorization endpoint.
+ * The full URL (including client_id, redirect_uri, scopes) is supplied via
+ * VITE_GOOGLE_LINK. After Google authenticates the user, it redirects back
+ * to `redirect_uri` with the access_token in the URL hash; App.tsx picks
+ * it up and exchanges it for backend JWTs.
+ */
+export function GoogleLoginButton() {
+  const googleAuthUrl = import.meta.env.VITE_GOOGLE_LINK
 
-export function GoogleLoginButton({ onSuccess, onError }: GoogleLoginButtonProps) {
-  if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+  if (!googleAuthUrl) {
     return null
   }
 
-  const handleSuccess = async (credentialResponse: CredentialResponse) => {
-    try {
-      if (!credentialResponse.credential) {
-        throw new Error('Missing Google credential')
-      }
-      const result = await loginWithSocialProvider('google', credentialResponse.credential)
-      onSuccess(result)
-    } catch (error) {
-      console.error('Google login failed:', error)
-      onError?.(error)
-    }
+  const loginWithGoogle = () => {
+    window.location.href = googleAuthUrl
   }
 
   return (
-    <GoogleLogin
-      onSuccess={handleSuccess}
-      onError={() => onError?.(new Error('Google Login Failed'))}
-      useOneTap
-    />
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full"
+      onClick={loginWithGoogle}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
+        <path
+          fill="#EA4335"
+          d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.7 2.5 2.5 6.7 2.5 12S6.7 21.5 12 21.5c6.9 0 9.5-4.8 9.5-7.3 0-.5-.05-.9-.1-1.3H12z"
+        />
+      </svg>
+      Continue with Google
+    </Button>
   )
 }
+

@@ -1,22 +1,16 @@
-import { GoogleOAuthProvider } from '@react-oauth/google'
 import type { ReactNode } from 'react'
 
 /**
  * Composes third-party auth SDK providers around the app.
- * Add new SDK providers (e.g. Facebook SDK) here as they are introduced.
+ * Currently we use a pure OAuth 2.0 redirect flow (see GoogleLoginButton),
+ * so no SDK provider is required. Kept as a passthrough so future SDK
+ * providers (e.g. Facebook JS SDK) can be wrapped here without touching main.
  */
 interface AuthProvidersProps {
   children: ReactNode
 }
 
 export function AuthProviders({ children }: AuthProvidersProps) {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-
-  let tree = <>{children}</>
-
-  if (googleClientId) {
-    tree = <GoogleOAuthProvider clientId={googleClientId}>{tree}</GoogleOAuthProvider>
-  }
-
-  return tree
+  return <>{children}</>
 }
+
