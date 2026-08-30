@@ -10,7 +10,7 @@ export default function Login() {
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/20 mb-2">
             <LayoutDashboard className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-xl">Budget Dashboard</CardTitle>
+          <CardTitle className="text-xl">Budget Tracker</CardTitle>
           <CardDescription>
             Sign in with one of the supported providers to manage your finances
           </CardDescription>
