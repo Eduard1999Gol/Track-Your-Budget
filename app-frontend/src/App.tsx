@@ -15,6 +15,8 @@ import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
 
 interface CurrentUser {
+  first_name?: string
+  last_name?: string
   username?: string
   email?: string
 }
@@ -153,7 +155,8 @@ function App() {
       .get<CurrentUser>('/users/me/')
       .then((res) => {
         if (cancelled) return
-        setUserName(res.data.username || res.data.email || undefined)
+        const fullName = `${res.data.first_name ?? ''} ${res.data.last_name ?? ''}`.trim()
+        setUserName(fullName || res.data.username || undefined)
       })
       .catch(() => {
         // 401s are already handled by the apiClient interceptor

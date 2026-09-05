@@ -129,7 +129,7 @@ CORS_ALLOWED_ORIGINS = [
 
 ROOT_URLCONF = 'backend.urls'
 
-SOCIAL_AUTH_REDIRECT_URL=os.getenv('REDIRECT_URL')
+SOCIAL_AUTH_REDIRECT_URL = os.getenv('FRONTEND_URL')
 
 TEMPLATES = [
     {
@@ -230,6 +230,5 @@ LOGGING = {
     },
 }
 
-LOGIN_URL = 'admin:login'
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR

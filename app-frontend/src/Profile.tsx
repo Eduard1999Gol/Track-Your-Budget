@@ -84,7 +84,9 @@ export default function Profile() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="text-xl font-semibold">{user.username || '—'}</div>
+                    <div className="text-xl font-semibold">
+                      {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username || '—'}
+                    </div>
                     <div className="text-sm text-muted-foreground">ID: {user.id}</div>
                   </div>
                 </div>

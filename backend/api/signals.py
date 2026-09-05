@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 import requests
+from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
@@ -18,21 +20,15 @@ def create_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=SocialAccount)
 def create_profile_avatar(sender, instance, created, **kwargs):
-    # Log the full provider payload so we can see everything the social provider returned.
-    logger.info(
-    "SocialAccount %s for user=%s (id=%s) provider=%s uid=%s extra_data=\n%s",
-    "created" if created else "updated",
-    instance.user.username,
-    instance.user.id,
-    instance.provider,
-    instance.uid,
-    json.dumps(instance.extra_data, indent=2, ensure_ascii=False, default=str),
-    )
     if created:
         user = instance.user
         profile, _ = Profile.objects.get_or_create(user=user)
         try:
-            image_url = instance.extra_data.get("picture")
+            if instance.provider == "github":
+                image_url = instance.extra_data.get("avatar_url")
+            else:
+                image_url = instance.extra_data.get("picture")
+
             if image_url:
                 resp = requests.get(image_url, timeout=5)
                 resp.raise_for_status()

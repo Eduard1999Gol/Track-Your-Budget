@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'image', 'bio']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'image', 'bio']
 
     def get_image(self, user):
         if hasattr(user, 'profile') and user.profile.avatar:
