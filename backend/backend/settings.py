@@ -46,11 +46,13 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+
+    # Social account providers
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.github',
     'allauth.socialaccount.providers.microsoft',
-    'dj_rest_auth',
-    'dj_rest_auth.registration',
 
     # Third-party apps
     'rest_framework',
@@ -127,7 +129,7 @@ CORS_ALLOWED_ORIGINS = [
 
 ROOT_URLCONF = 'backend.urls'
 
-SOCIAL_AUTH_REDIRECT_URL="http://localhost:5173/"
+SOCIAL_AUTH_REDIRECT_URL=os.getenv('REDIRECT_URL')
 
 TEMPLATES = [
     {

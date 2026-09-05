@@ -5,30 +5,23 @@ import type {
 } from './types'
 
 /**
- * Exchanges a provider-issued OAuth credential for a backend access token.
- * The refresh token is delivered by the backend as an httpOnly cookie, so we
- * MUST send credentials to receive/keep it.
+ * Exchanges a provider-issued OAuth authorization code for a backend access
+ * token. The refresh token is delivered by the backend as an httpOnly cookie,
+ * so we MUST send credentials to receive/keep it.
  *
  * Backend contract (dj-rest-auth SocialLoginView): POST /api/{provider}/login/
- *   - Google uses the implicit flow, so we forward its `access_token`.
- *   - GitHub and Microsoft only support the authorization-code flow, so we
- *     forward the `code` and the backend exchanges it server-side using its
- *     client secret.
+ * All three providers use the authorization-code flow; the backend performs
+ * the server-side code exchange with its client secret.
  */
 export async function loginWithSocialProvider(
   provider: SocialProvider,
   credential: string,
 ): Promise<AuthResult> {
-  const usesAuthorizationCode = provider === 'github' || provider === 'microsoft'
-  const payload = usesAuthorizationCode
-    ? { code: credential }
-    : { access_token: credential }
-
   const response = await fetch(`/api/${provider}/login/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ code: credential }),
   })
 
   const responseText = await response.text()

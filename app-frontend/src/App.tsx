@@ -3,6 +3,7 @@ import axios from 'axios'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
+import Profile from './Profile'
 import apiClient, {
   refreshAccessToken,
   setAccessToken,
@@ -19,7 +20,7 @@ interface CurrentUser {
 }
 
 // Captured at module load, BEFORE React renders. Otherwise the first render
-// would <Navigate> away from "/" and strip the hash/query from the URL before
+// would <Navigate> away from "/" and strip the query from the URL before
 // any effect could read it.
 interface CapturedOAuth {
   provider: SocialProvider | null
@@ -31,41 +32,35 @@ function stripAuthArtifactsFromUrl() {
   window.history.replaceState(null, '', window.location.pathname)
 }
 
-function captureOAuthHashOnce(): CapturedOAuth {
+function captureOAuthCallbackOnce(): CapturedOAuth {
   if (typeof window === 'undefined') {
     return { provider: null, credential: null, error: null }
   }
 
-  // Google (implicit flow) returns tokens in the URL hash: #access_token=...
-  const hash = window.location.hash
-  if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-    const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
-    const credential = params.get('access_token')
-    const error = params.get('error')
-    stripAuthArtifactsFromUrl()
-    sessionStorage.removeItem('oauth_provider')
-    return { provider: 'google', credential, error }
-  }
-
-  // GitHub and Microsoft (authorization-code flow) both return `?code=...` in
-  // the query string. We disambiguate via a marker set by the button before
-  // redirecting; default to GitHub for backwards compatibility.
+  // All three providers now use the authorization-code flow and come back
+  // as `?code=...` in the query string. The concrete provider is stored in
+  // sessionStorage by the login button before redirecting out.
   const query = new URLSearchParams(window.location.search)
   const code = query.get('code')
   const queryError = query.get('error')
-  if (code || queryError) {
-    const marker = sessionStorage.getItem('oauth_provider')
-    sessionStorage.removeItem('oauth_provider')
-    const provider: SocialProvider =
-      marker === 'microsoft' ? 'microsoft' : 'github'
-    stripAuthArtifactsFromUrl()
-    return { provider, credential: code, error: queryError }
+  if (!code && !queryError) {
+    return { provider: null, credential: null, error: null }
   }
 
-  return { provider: null, credential: null, error: null }
+  const marker = sessionStorage.getItem('oauth_provider') as
+    | SocialProvider
+    | null
+  sessionStorage.removeItem('oauth_provider')
+  stripAuthArtifactsFromUrl()
+
+  return {
+    provider: marker,
+    credential: code,
+    error: queryError ?? (marker ? null : 'Missing OAuth provider marker.'),
+  }
 }
 
-const capturedOAuth = captureOAuthHashOnce()
+const capturedOAuth = captureOAuthCallbackOnce()
 
 function App() {
   const { toast } = useToast()
@@ -206,6 +201,10 @@ function App() {
                 <Navigate to="/login" replace />
               )
             }
+          />
+          <Route
+            path="/profile"
+            element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
