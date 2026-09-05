@@ -24,6 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    # Return amount as a JSON number instead of a string so the frontend can do arithmetic directly.
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, coerce_to_string=False)
+
     class Meta:
         model = Transaction
         fields = ['id', 'title', 'notes', 'amount', 'category', 'date', 'type']
