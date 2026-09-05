@@ -203,4 +203,33 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media Files Setup
 MEDIA_URL = '/media/'
+
+# Logging: make the `api` logger emit INFO to the console so we can see
+# the full social-auth provider payload (see api/signals.py).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+LOGIN_URL = 'admin:login'
+
 MEDIA_ROOT = BASE_DIR / 'media'
