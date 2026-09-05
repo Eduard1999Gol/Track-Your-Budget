@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Mail, User as UserIcon } from 'lucide-react'
+import { Mail, User as UserIcon } from 'lucide-react'
 import apiClient from '@/lib/apiClient'
 import { useToast } from '@/hooks/use-toast'
 import type { CurrentUser } from '@/lib/types'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
@@ -18,7 +16,6 @@ function initials(name: string | undefined, email: string | undefined): string {
 }
 
 export default function Profile() {
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [user, setUser] = useState<CurrentUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -47,19 +44,9 @@ export default function Profile() {
   }, [toast])
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8 flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/')}
-            aria-label="Zurück zum Dashboard"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">Profil</h1>
-        </header>
+        <h1 className="mb-8 text-2xl font-bold text-foreground">Profil</h1>
 
         <Card>
           <CardHeader>

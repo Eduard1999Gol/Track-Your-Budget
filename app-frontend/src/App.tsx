@@ -13,6 +13,7 @@ import { loginWithSocialProvider } from '@/lib/auth/api'
 import type { SocialProvider } from '@/lib/auth/types'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
+import { Navbar } from '@/components/layout/Navbar'
 
 interface CurrentUser {
   first_name?: string
@@ -190,27 +191,36 @@ function App() {
   return (
     <>
       <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar
+            isAuthenticated={isAuthenticated}
+            userName={userName}
+            onLogout={handleLogout}
           />
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <BudgetDashboard onLogout={handleLogout} userName={userName} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route
-            path="/profile"
-            element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          <main className="flex-1 flex flex-col">
+            <Routes>
+              <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+              />
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <BudgetDashboard />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route
+                path="/profile"
+                element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
       </Router>
       <Toaster />
     </>
