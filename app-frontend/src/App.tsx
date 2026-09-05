@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
 import Profile from './Profile'
+import Settings from './Settings'
 import apiClient, {
   refreshAccessToken,
   setAccessToken,
@@ -216,6 +217,10 @@ function App() {
               <Route
                 path="/profile"
                 element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
+                element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />}
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
