@@ -121,37 +121,42 @@ function App() {
           ? 'Microsoft'
           : 'Google'
 
-    if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
-      setAuthPending(false)
-      toast({
-        title: `${providerLabel} login failed`,
-        description: capturedOAuth.error ?? 'Missing authorization response.',
-        variant: 'destructive',
-      })
-      return
-    }
+    // Wrapped in an async IIFE so every setState runs off the effect body
+    // (satisfies react-hooks/set-state-in-effect).
+    const exchange = async () => {
+      if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
+        toast({
+          title: `${providerLabel} login failed`,
+          description: capturedOAuth.error ?? 'Missing authorization response.',
+          variant: 'destructive',
+        })
+        return
+      }
 
-    loginWithSocialProvider(provider, capturedOAuth.credential)
-      .then(({ accessToken }) => {
+      try {
+        const { accessToken } = await loginWithSocialProvider(
+          provider,
+          capturedOAuth.credential,
+        )
         applyAccessToken(accessToken)
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(`${providerLabel} login failed:`, err)
         toast({
           title: `${providerLabel} login failed`,
           description: err instanceof Error ? err.message : String(err),
           variant: 'destructive',
         })
-      })
-      .finally(() => setAuthPending(false))
+      }
+    }
+
+    exchange().finally(() => setAuthPending(false))
   }, [applyAccessToken, toast])
 
-  // Load the current user's display name once we have a session
+  // Load the current user's display name once we have a session.
+  // No cleanup setState needed: userName is reset wherever authToken is cleared
+  // (handleLogout + unauthorized handler), and its initial value is undefined.
   useEffect(() => {
-    if (!authToken) {
-      setUserName(undefined)
-      return
-    }
+    if (!authToken) return
     let cancelled = false
     apiClient
       .get<CurrentUser>('/users/me/')
