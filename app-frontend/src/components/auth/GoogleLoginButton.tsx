@@ -1,20 +1,23 @@
 import { Button } from '@/components/ui/button'
+import { runtimeEnv } from '@/lib/runtime-env'
 
 /**
  * Redirects the browser to Google's OAuth 2.0 authorization endpoint.
- * The full URL (including client_id, redirect_uri, scopes) is supplied via
- * VITE_GOOGLE_LINK. After Google authenticates the user, it redirects back
- * to `redirect_uri` with the access_token in the URL hash; App.tsx picks
- * it up and exchanges it for backend JWTs.
+ * The full URL (including client_id, redirect_uri, scopes, response_type=code)
+ * is supplied via runtimeEnv.GOOGLE_LINK. Google returns to `redirect_uri` with
+ * `?code=...` in the query string; App.tsx reads the provider marker from
+ * sessionStorage to know it must exchange this code at the Google backend
+ * endpoint, and forwards the code for a server-side exchange.
  */
 export function GoogleLoginButton() {
-  const googleAuthUrl = import.meta.env.VITE_GOOGLE_LINK
+  const googleAuthUrl = runtimeEnv.GOOGLE_LINK
 
   if (!googleAuthUrl) {
     return null
   }
 
   const loginWithGoogle = () => {
+    sessionStorage.setItem('oauth_provider', 'google')
     window.location.href = googleAuthUrl
   }
 

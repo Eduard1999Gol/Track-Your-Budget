@@ -46,11 +46,13 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+
+    # Social account providers
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.github',
     'allauth.socialaccount.providers.microsoft',
-    'dj_rest_auth',
-    'dj_rest_auth.registration',
 
     # Third-party apps
     'rest_framework',
@@ -127,7 +129,7 @@ CORS_ALLOWED_ORIGINS = [
 
 ROOT_URLCONF = 'backend.urls'
 
-SOCIAL_AUTH_REDIRECT_URL="http://localhost:5173/"
+SOCIAL_AUTH_REDIRECT_URL = os.getenv('FRONTEND_URL')
 
 TEMPLATES = [
     {
@@ -201,4 +203,32 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media Files Setup
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# Logging: make the `api` logger emit INFO to the console so we can see
+# the full social-auth provider payload (see api/signals.py).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
+MEDIA_ROOT = BASE_DIR

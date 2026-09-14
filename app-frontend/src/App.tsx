@@ -3,6 +3,8 @@ import axios from 'axios'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import BudgetDashboard from './Dashboard'
 import Login from './Login'
+import Profile from './Profile'
+import Settings from './Settings'
 import apiClient, {
   refreshAccessToken,
   setAccessToken,
@@ -12,14 +14,17 @@ import { loginWithSocialProvider } from '@/lib/auth/api'
 import type { SocialProvider } from '@/lib/auth/types'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
+import { Navbar } from '@/components/layout/Navbar'
 
 interface CurrentUser {
+  first_name?: string
+  last_name?: string
   username?: string
   email?: string
 }
 
 // Captured at module load, BEFORE React renders. Otherwise the first render
-// would <Navigate> away from "/" and strip the hash/query from the URL before
+// would <Navigate> away from "/" and strip the query from the URL before
 // any effect could read it.
 interface CapturedOAuth {
   provider: SocialProvider | null
@@ -31,41 +36,35 @@ function stripAuthArtifactsFromUrl() {
   window.history.replaceState(null, '', window.location.pathname)
 }
 
-function captureOAuthHashOnce(): CapturedOAuth {
+function captureOAuthCallbackOnce(): CapturedOAuth {
   if (typeof window === 'undefined') {
     return { provider: null, credential: null, error: null }
   }
 
-  // Google (implicit flow) returns tokens in the URL hash: #access_token=...
-  const hash = window.location.hash
-  if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-    const params = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash)
-    const credential = params.get('access_token')
-    const error = params.get('error')
-    stripAuthArtifactsFromUrl()
-    sessionStorage.removeItem('oauth_provider')
-    return { provider: 'google', credential, error }
-  }
-
-  // GitHub and Microsoft (authorization-code flow) both return `?code=...` in
-  // the query string. We disambiguate via a marker set by the button before
-  // redirecting; default to GitHub for backwards compatibility.
+  // All three providers now use the authorization-code flow and come back
+  // as `?code=...` in the query string. The concrete provider is stored in
+  // sessionStorage by the login button before redirecting out.
   const query = new URLSearchParams(window.location.search)
   const code = query.get('code')
   const queryError = query.get('error')
-  if (code || queryError) {
-    const marker = sessionStorage.getItem('oauth_provider')
-    sessionStorage.removeItem('oauth_provider')
-    const provider: SocialProvider =
-      marker === 'microsoft' ? 'microsoft' : 'github'
-    stripAuthArtifactsFromUrl()
-    return { provider, credential: code, error: queryError }
+  if (!code && !queryError) {
+    return { provider: null, credential: null, error: null }
   }
 
-  return { provider: null, credential: null, error: null }
+  const marker = sessionStorage.getItem('oauth_provider') as
+    | SocialProvider
+    | null
+  sessionStorage.removeItem('oauth_provider')
+  stripAuthArtifactsFromUrl()
+
+  return {
+    provider: marker,
+    credential: code,
+    error: queryError ?? (marker ? null : 'Missing OAuth provider marker.'),
+  }
 }
 
-const capturedOAuth = captureOAuthHashOnce()
+const capturedOAuth = captureOAuthCallbackOnce()
 
 function App() {
   const { toast } = useToast()
@@ -122,43 +121,49 @@ function App() {
           ? 'Microsoft'
           : 'Google'
 
-    if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
-      setAuthPending(false)
-      toast({
-        title: `${providerLabel} login failed`,
-        description: capturedOAuth.error ?? 'Missing authorization response.',
-        variant: 'destructive',
-      })
-      return
-    }
+    // Wrapped in an async IIFE so every setState runs off the effect body
+    // (satisfies react-hooks/set-state-in-effect).
+    const exchange = async () => {
+      if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
+        toast({
+          title: `${providerLabel} login failed`,
+          description: capturedOAuth.error ?? 'Missing authorization response.',
+          variant: 'destructive',
+        })
+        return
+      }
 
-    loginWithSocialProvider(provider, capturedOAuth.credential)
-      .then(({ accessToken }) => {
+      try {
+        const { accessToken } = await loginWithSocialProvider(
+          provider,
+          capturedOAuth.credential,
+        )
         applyAccessToken(accessToken)
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(`${providerLabel} login failed:`, err)
         toast({
           title: `${providerLabel} login failed`,
           description: err instanceof Error ? err.message : String(err),
           variant: 'destructive',
         })
-      })
-      .finally(() => setAuthPending(false))
+      }
+    }
+
+    exchange().finally(() => setAuthPending(false))
   }, [applyAccessToken, toast])
 
-  // Load the current user's display name once we have a session
+  // Load the current user's display name once we have a session.
+  // No cleanup setState needed: userName is reset wherever authToken is cleared
+  // (handleLogout + unauthorized handler), and its initial value is undefined.
   useEffect(() => {
-    if (!authToken) {
-      setUserName(undefined)
-      return
-    }
+    if (!authToken) return
     let cancelled = false
     apiClient
       .get<CurrentUser>('/users/me/')
       .then((res) => {
         if (cancelled) return
-        setUserName(res.data.username || res.data.email || undefined)
+        const fullName = `${res.data.first_name ?? ''} ${res.data.last_name ?? ''}`.trim()
+        setUserName(fullName || res.data.username || undefined)
       })
       .catch(() => {
         // 401s are already handled by the apiClient interceptor
@@ -192,23 +197,40 @@ function App() {
   return (
     <>
       <Router>
-        <Routes>
-          <Route
-            path="/login"
-            element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        <div className="min-h-screen bg-background flex flex-col">
+          <Navbar
+            isAuthenticated={isAuthenticated}
+            userName={userName}
+            onLogout={handleLogout}
           />
-          <Route
-            path="/"
-            element={
-              isAuthenticated ? (
-                <BudgetDashboard onLogout={handleLogout} userName={userName} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          <main className="flex-1 flex flex-col">
+            <Routes>
+              <Route
+                path="/login"
+                element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+              />
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <BudgetDashboard />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route
+                path="/profile"
+                element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
+                element={isAuthenticated ? <Settings /> : <Navigate to="/login" replace />}
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </main>
+        </div>
       </Router>
       <Toaster />
     </>

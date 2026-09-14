@@ -1,10 +1,6 @@
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 
-# baked into the JS bundle by Vite at build time
-ARG VITE_GOOGLE_CLIENT_ID
-ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
-
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -17,6 +13,10 @@ RUN npm run build
 FROM nginx:alpine AS runner
 
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Runs at container start (nginx:alpine executes /docker-entrypoint.d/*.sh before nginx) to bake env vars into env-config.js.
+COPY docker-entrypoint.sh /docker-entrypoint.d/40-write-env.sh
+RUN chmod +x /docker-entrypoint.d/40-write-env.sh
 
 # Proxy /api to backend service and fallback to index.html for client-side routing
 RUN printf 'server {\n\

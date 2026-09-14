@@ -1,4 +1,8 @@
+import json
+import logging
+import os
 import requests
+from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
@@ -6,6 +10,8 @@ from django.core.files.base import ContentFile
 from django.core.files import File
 from allauth.socialaccount.models import SocialAccount
 from .models import Profile
+
+logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
@@ -18,7 +24,11 @@ def create_profile_avatar(sender, instance, created, **kwargs):
         user = instance.user
         profile, _ = Profile.objects.get_or_create(user=user)
         try:
-            image_url = instance.extra_data.get("picture")
+            if instance.provider == "github":
+                image_url = instance.extra_data.get("avatar_url")
+            else:
+                image_url = instance.extra_data.get("picture")
+
             if image_url:
                 resp = requests.get(image_url, timeout=5)
                 resp.raise_for_status()
@@ -26,4 +36,4 @@ def create_profile_avatar(sender, instance, created, **kwargs):
                 image_file = ContentFile(resp.content)
                 profile.avatar.save(file_name, File(image_file), save=True)
         except Exception as e:
-            print(f"Error saving avatar: {e}")
+            logger.exception("Error saving avatar: %s", e)

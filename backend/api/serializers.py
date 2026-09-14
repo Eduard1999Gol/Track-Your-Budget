@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'image', 'bio']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'image', 'bio']
 
     def get_image(self, user):
         if hasattr(user, 'profile') and user.profile.avatar:
@@ -24,6 +24,9 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    # Return amount as a JSON number instead of a string so the frontend can do arithmetic directly.
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, coerce_to_string=False)
+
     class Meta:
         model = Transaction
         fields = ['id', 'title', 'notes', 'amount', 'category', 'date', 'type']
