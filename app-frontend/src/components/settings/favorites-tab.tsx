@@ -1,6 +1,5 @@
-'use client'
-
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Plus, Trash2, WalletCards } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,7 +10,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 
@@ -29,24 +35,27 @@ const initialTemplates: Template[] = [
   { id: '3', title: 'Freelance Zahlung', category: 'Gehalt', amount: '800,00 €', type: 'income' },
 ]
 
+interface TemplateFormValues {
+  title: string
+}
+
 export function FavoritesTab() {
   const [templates, setTemplates] = useState<Template[]>(initialTemplates)
-  const [templateTitle, setTemplateTitle] = useState('')
+  const form = useForm<TemplateFormValues>({ defaultValues: { title: '' } })
   const { toast } = useToast()
 
-  const addTemplate = () => {
-    if (!templateTitle.trim()) return
+  const addTemplate = ({ title }: TemplateFormValues) => {
     setTemplates((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
-        title: templateTitle.trim(),
+        title: title.trim(),
         category: 'Sonstiges',
         amount: '0,00 €',
         type: 'expense',
       },
     ])
-    setTemplateTitle('')
+    form.reset({ title: '' })
     toast({
       title: 'Vorlage gespeichert',
       description: 'Die neue Schnellvorlage wurde zu Ihren Favoriten hinzugefügt.',
@@ -103,21 +112,35 @@ export function FavoritesTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="template-title">Name der Vorlage</Label>
-            <Input
-              id="template-title"
-              placeholder="z. B. Coffee to go"
-              value={templateTitle}
-              onChange={(event) => setTemplateTitle(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') addTemplate()
-              }}
-            />
-          </div>
-          <Button onClick={addTemplate}>
-            <Plus /> Vorlage erstellen
-          </Button>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(addTemplate)}
+              noValidate
+              className="flex flex-col gap-4"
+            >
+              <FormField
+                control={form.control}
+                name="title"
+                rules={{
+                  validate: (value) =>
+                    value.trim().length > 0 ||
+                    'Bitte geben Sie einen Namen für die Vorlage ein.',
+                }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name der Vorlage</FormLabel>
+                    <FormControl>
+                      <Input placeholder="z. B. Coffee to go" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">
+                <Plus /> Vorlage erstellen
+              </Button>
+            </form>
+          </Form>
           <Separator />
           <div className="rounded-lg bg-primary/5 p-4 text-sm text-muted-foreground">
             <p className="font-medium text-foreground">Tipp</p>
