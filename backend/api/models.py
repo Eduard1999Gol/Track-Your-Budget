@@ -6,7 +6,9 @@ def profile_path(instance, filename):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    avatar = models.ImageField(default='media/user.png', upload_to=profile_path)
+    # Paths are relative to MEDIA_ROOT (backend/media), so the fallback lives
+    # at backend/media/user.png.
+    avatar = models.ImageField(default='user.png', upload_to=profile_path)
     bio = models.TextField(blank=True)
 
     def __str__(self):
