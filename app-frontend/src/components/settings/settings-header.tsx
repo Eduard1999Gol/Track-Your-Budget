@@ -1,5 +1,3 @@
-'use client'
-
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Check, SlidersHorizontal } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
