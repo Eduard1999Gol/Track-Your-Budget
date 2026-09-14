@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 import os
 from dotenv import load_dotenv
 
@@ -39,18 +41,29 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
-
+    # Local apps
     'api',
-    'django.contrib.sites',
 
-    'rest_framework',
-    'rest_framework.authtoken',
-
+    # Auth & Social Apps
+    'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 
+    # Social account providers
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
+    'allauth.socialaccount.providers.microsoft',
+
+    # Third-party apps
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+
+    # Django default apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -63,16 +76,27 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
-REST_USE_JWT = True
-REST_AUTH_TOKEN_MODEL = None
+REST_AUTH = {
+    'JWT_SERIALIZER': 'api.serializers.JWTSerializer',
+    'USE_JWT': True,
+    # Refresh token lives ONLY in an httpOnly cookie; access token stays in JSON body.
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh',
+    'JWT_AUTH_SAMESITE': 'Lax',
+    'JWT_AUTH_SECURE': os.getenv('JWT_AUTH_SECURE', 'False') == 'True',
+    'SESSION_LOGIN': False,
+}
 
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=4),
     'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -90,35 +114,41 @@ MIDDLEWARE = [
 
 SITE_ID = 1
 
-# Disable traditional email verification since Google handles email safety
+# Social provider already authenticated the user; skip allauth's email
+# verification flow (which would otherwise require account_confirm_email URLs).
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_USERNAME_REQUIRED = False
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+ACCOUNT_EMAIL_REQUIRED = False
 
-# Automatically link a Google sign-in to an existing account if emails match
-SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
-SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
-GOOGLE_OAUTH2_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+FRONTEND_URL = os.getenv('FRONTEND_URL')
 
-# Add your Google Credentials safely
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'APPS': [{
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'secret': os.getenv('GOOGLE_SECRET'),
-            'key': ''
-        }],
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {'access_type': 'online'},
-    }
-}
+SOCIAL_AUTH_REDIRECT_URL = FRONTEND_URL
 
+
+def _origin(url):
+    """scheme://host[:port] of a URL, or None if it isn't absolute."""
+    parts = urlparse(url or '')
+    return f'{parts.scheme}://{parts.netloc}' if parts.scheme and parts.netloc else None
+
+
+# Defaults cover the Vite dev server; test/prod override via the env var.
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    origin.strip().rstrip('/')
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173',
+    ).split(',')
+    if origin.strip()
 ]
+
+# FRONTEND_URL is where we send users back after social login, so its origin
+# always has to be allowed. Deriving it here means a deployment only needs to
+# set FRONTEND_URL, not repeat the same host in CORS_ALLOWED_ORIGINS.
+_frontend_origin = _origin(FRONTEND_URL)
+if _frontend_origin and _frontend_origin not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(_frontend_origin)
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -191,3 +221,36 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media Files Setup
+# MEDIA_ROOT must stay a dedicated directory: urls.py serves MEDIA_ROOT under
+# MEDIA_URL in DEBUG, so pointing it at BASE_DIR would expose the whole backend
+# tree (.env included) at /media/.
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# Logging: make the `api` logger emit INFO to the console so we can see
+# the full social-auth provider payload (see api/signals.py).
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'api': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

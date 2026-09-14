@@ -1,6 +1,21 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+def profile_path(instance, filename):
+    return f"user_{instance.user.id}/{filename}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    # No placeholder file: an unset avatar stays empty and the serializer
+    # reports image=None, which the SPA renders as the user's initials. A
+    # default pointing into MEDIA_ROOT would be shadowed by the media volume
+    # mounted over that path in the cluster.
+    avatar = models.ImageField(upload_to=profile_path, blank=True)
+    bio = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.user.username
+
 
 class Transaction(models.Model):
     class TransactionType(models.TextChoices):
