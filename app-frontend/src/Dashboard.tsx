@@ -29,12 +29,11 @@ export default function BudgetDashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { toast } = useToast()
 
-  // Fetch data on mount - ready for API integration
+  // Fetch data on mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
       try {
-        // Replace these with actual API calls
         const [transactionsData, monthlyDataResult] = await Promise.all([
           fetchTransactions(),
           fetchMonthlyData(),
