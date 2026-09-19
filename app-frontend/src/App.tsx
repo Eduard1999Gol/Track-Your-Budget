@@ -5,6 +5,7 @@ import BudgetDashboard from './Dashboard'
 import Login from './Login'
 import Profile from './Profile'
 import Settings from './Settings'
+import Transactions from './Transactions'
 import apiClient, {
   refreshAccessToken,
   setAccessToken,
@@ -218,6 +219,10 @@ function App() {
                     <Navigate to="/login" replace />
                   )
                 }
+              />
+              <Route
+                path="/transactions"
+                element={isAuthenticated ? <Transactions /> : <Navigate to="/login" replace />}
               />
               <Route
                 path="/profile"

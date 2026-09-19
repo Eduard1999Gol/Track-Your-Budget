@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import apiClient from '@/lib/apiClient'
 import { OverviewCards } from '@/components/budget/overview-cards'
@@ -164,9 +167,16 @@ export default function BudgetDashboard() {
           {/* Left Column - Charts */}
           <div>
             <TransactionList
-              transactions={sortedTransactions.slice(0, 10)}
+              transactions={sortedTransactions.slice(0, 8)}
               isLoading={isLoading}
               onSelectTransaction={handleSelectTransaction}
+              headerAction={
+                <Button asChild variant="secondary" size="sm" className="px-0">
+                  <Link to="/transactions">
+                    Alle anzeigen <ArrowRight />
+                  </Link>
+                </Button>
+              }
             />
           </div>
            {/* Right Column - Charts */}
