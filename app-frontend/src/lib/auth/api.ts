@@ -1,8 +1,4 @@
-import type {
-  AuthResult,
-  BackendAuthResponse,
-  SocialProvider,
-} from './types'
+import type { AuthResult, BackendAuthResponse, SocialProvider } from './types'
 
 export const PROVIDER_LABELS: Record<SocialProvider, string> = {
   google: 'Google',

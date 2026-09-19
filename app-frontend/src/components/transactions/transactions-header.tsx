@@ -14,9 +14,7 @@ export function TransactionsHeader() {
         <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
           <ListOrdered className="size-4" /> Übersicht
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Transaktionen
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Transaktionen</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Durchsuchen und filtern Sie alle Ihre Einnahmen und Ausgaben.
         </p>

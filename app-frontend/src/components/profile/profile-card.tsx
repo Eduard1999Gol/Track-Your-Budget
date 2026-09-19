@@ -40,7 +40,9 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
               </Avatar>
               <div>
                 <div className="text-xl font-semibold">
-                  {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username || '—'}
+                  {`${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() ||
+                    user.username ||
+                    '—'}
                 </div>
                 <div className="text-sm text-muted-foreground">ID: {user.id}</div>
               </div>
@@ -65,16 +67,12 @@ export function ProfileCard({ user, isLoading }: ProfileCardProps) {
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <dt className="text-sm text-muted-foreground">Bio</dt>
-                <dd className="text-sm whitespace-pre-wrap">
-                  {user.bio?.trim() ? user.bio : '—'}
-                </dd>
+                <dd className="text-sm whitespace-pre-wrap">{user.bio?.trim() ? user.bio : '—'}</dd>
               </div>
             </dl>
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Keine Profildaten verfügbar.
-          </p>
+          <p className="text-sm text-muted-foreground">Keine Profildaten verfügbar.</p>
         )}
       </CardContent>
     </Card>
