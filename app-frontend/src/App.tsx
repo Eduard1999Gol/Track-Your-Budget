@@ -11,7 +11,7 @@ import apiClient, {
   setAccessToken,
   setUnauthorizedHandler,
 } from '@/lib/apiClient'
-import { loginWithSocialProvider } from '@/lib/auth/api'
+import { loginWithSocialProvider, PROVIDER_LABELS, SocialLoginError } from '@/lib/auth/api'
 import type { SocialProvider } from '@/lib/auth/types'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
@@ -115,20 +115,19 @@ function App() {
     oauthHandled.current = true
 
     const provider = capturedOAuth.provider
-    const providerLabel =
-      provider === 'github'
-        ? 'GitHub'
-        : provider === 'microsoft'
-          ? 'Microsoft'
-          : 'Google'
+    const providerLabel = provider ? PROVIDER_LABELS[provider] : 'Google'
 
     // Wrapped in an async IIFE so every setState runs off the effect body
     // (satisfies react-hooks/set-state-in-effect).
     const exchange = async () => {
       if (capturedOAuth.error || !provider || !capturedOAuth.credential) {
+        console.error(
+          `${providerLabel} login failed:`,
+          capturedOAuth.error ?? 'Missing authorization response.',
+        )
         toast({
-          title: `${providerLabel} login failed`,
-          description: capturedOAuth.error ?? 'Missing authorization response.',
+          title: 'Anmeldung fehlgeschlagen',
+          description: `Fehler beim Anmeldedienst ${providerLabel}.`,
           variant: 'destructive',
         })
         return
@@ -141,10 +140,18 @@ function App() {
         )
         applyAccessToken(accessToken)
       } catch (err) {
-        console.error(`${providerLabel} login failed:`, err)
+        // Full HTTP status + body go to the console; the toast only gets the
+        // short, user-facing message.
+        console.error(
+          `${providerLabel} login failed:`,
+          err instanceof SocialLoginError ? err.detail : err,
+        )
         toast({
-          title: `${providerLabel} login failed`,
-          description: err instanceof Error ? err.message : String(err),
+          title: 'Anmeldung fehlgeschlagen',
+          description:
+            err instanceof SocialLoginError
+              ? err.message
+              : `Fehler beim Anmeldedienst ${providerLabel}.`,
           variant: 'destructive',
         })
       }
