@@ -1,6 +1,6 @@
 import { Mail, User as UserIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import type { CurrentUser } from '@/lib/types'
@@ -20,9 +20,6 @@ function initials(name: string | undefined, email: string | undefined): string {
 export function ProfileCard({ user, isLoading }: ProfileCardProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Benutzerdaten</CardTitle>
-      </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (
           <div className="flex items-center gap-4">
