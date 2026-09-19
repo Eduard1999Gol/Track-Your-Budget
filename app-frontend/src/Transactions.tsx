@@ -16,7 +16,7 @@ import { TransactionDetailsModal } from '@/components/budget/transaction-details
 import { useToast } from '@/hooks/use-toast'
 import apiClient from '@/lib/apiClient'
 import { CATEGORIES, type PaginatedResponse, type Transaction } from '@/lib/types'
-import { parseLocalDate } from '@/lib/utils'
+import { sortNewestFirst, toIsoDate } from '@/lib/utils'
 
 // How many rows one request returns; the first render and every
 // "Weitere laden" click fetch exactly this many.
@@ -41,15 +41,6 @@ const DEFAULT_FILTERS: Filters = {
   category: ALL,
   type: ALL,
   period: ALL,
-}
-
-// Format a local Date as the "YYYY-MM-DD" the API expects, without going
-// through toISOString(), which would shift the day in timezones west of UTC.
-function toIsoDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 // "Aktueller Monat" starts on the 1st of this month; "Letzte 2 Monate" on the
@@ -83,14 +74,6 @@ async function fetchTransactionPage(
     params: buildQuery(filters, offset),
   })
   return response.data
-}
-
-// Keep the list in the server's order after a local edit changed a date.
-function sortNewestFirst(transactions: Transaction[]): Transaction[] {
-  return [...transactions].sort((a, b) => {
-    const byDate = parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()
-    return byDate !== 0 ? byDate : Number(b.id) - Number(a.id)
-  })
 }
 
 export default function Transactions() {

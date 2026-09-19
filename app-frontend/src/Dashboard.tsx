@@ -10,14 +10,36 @@ import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
-import type { Transaction, MonthlyData } from '@/lib/types'
-import { parseLocalDate } from '@/lib/utils'
+import type { MonthlyData, PaginatedResponse, Transaction } from '@/lib/types'
+import { monthBounds } from '@/lib/utils'
 
+// Rows shown in the "Letzte Transaktionen" card.
+const RECENT_COUNT = 8
 
-//  API call 
-async function fetchTransactions(): Promise<Transaction[]> {
-  const response = await apiClient.get<Transaction[]>('/transactions/')
+//  API calls
+// Totals and the category breakdown are scoped to the current month, so ask
+// the server for exactly that slice instead of the full history.
+async function fetchCurrentMonthTransactions(month: Date): Promise<Transaction[]> {
+  const { from, to } = monthBounds(month)
+  const response = await apiClient.get<Transaction[]>('/transactions/', {
+    params: { date_from: from, date_to: to },
+  })
   return response.data
+}
+
+// The recent list is deliberately *not* month-scoped: on the 1st of a month
+// it should still show last month's activity rather than an empty card.
+async function fetchRecentTransactions(): Promise<Transaction[]> {
+  const response = await apiClient.get<PaginatedResponse<Transaction>>('/transactions/', {
+    params: { limit: RECENT_COUNT },
+  })
+  return response.data.results
+}
+
+// Whether an API date ("YYYY-MM-DD") falls into the month the dashboard shows.
+function isInCurrentMonth(date: string): boolean {
+  const { from, to } = monthBounds(new Date())
+  return date >= from && date <= to
 }
 
 async function fetchMonthlyData(): Promise<MonthlyData[]> {
@@ -26,23 +48,30 @@ async function fetchMonthlyData(): Promise<MonthlyData[]> {
 }
 
 export default function BudgetDashboard() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  // Current-month rows: drive the overview cards and the category breakdown.
+  const [monthTransactions, setMonthTransactions] = useState<Transaction[]>([])
+  // Newest RECENT_COUNT rows across all months: drive the list card.
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([])
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { toast } = useToast()
 
+  const now = new Date()
+
   // Fetch data on mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
       try {
-        const [transactionsData, monthlyDataResult] = await Promise.all([
-          fetchTransactions(),
+        const [monthData, recentData, monthlyDataResult] = await Promise.all([
+          fetchCurrentMonthTransactions(new Date()),
+          fetchRecentTransactions(),
           fetchMonthlyData(),
         ])
-        setTransactions(transactionsData)
+        setMonthTransactions(monthData)
+        setRecentTransactions(recentData)
         setMonthlyData(monthlyDataResult)
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -54,14 +83,19 @@ export default function BudgetDashboard() {
     loadData()
   }, [])
 
-  // Calculate totals from current month's transactions only
-  const now = new Date()
-  const currentMonthTransactions = transactions.filter((t) => {
-    const d = parseLocalDate(t.date)
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-  })
+  // After a successful write, re-read the recent list from the server: that
+  // keeps it at exactly RECENT_COUNT rows and in server order without
+  // re-implementing the "which row moved in from position 9" logic here.
+  const reloadRecent = useCallback(async () => {
+    try {
+      setRecentTransactions(await fetchRecentTransactions())
+    } catch (error) {
+      console.error('Failed to refresh recent transactions:', error)
+    }
+  }, [])
 
-  const totals = currentMonthTransactions.reduce(
+  // Everything in monthTransactions is the current month (see the fetch above).
+  const totals = monthTransactions.reduce(
     (acc, t) => {
       const amount = Number(t.amount)
       if (t.type === 'income') {
@@ -79,7 +113,13 @@ export default function BudgetDashboard() {
   const handleAddTransaction = useCallback(async (newTransaction: Omit<Transaction, 'id'>) => {
     try {
       const response = await apiClient.post<Transaction>('/transactions/', newTransaction)
-      setTransactions((prev) => [response.data, ...prev])
+      // A transaction dated outside this month is saved but does not belong
+      // in the dashboard's state, which only mirrors the current month.
+      const saved = response.data
+      if (isInCurrentMonth(saved.date)) {
+        setMonthTransactions((prev) => [saved, ...prev])
+      }
+      void reloadRecent()
       toast({
         title: 'Erfolg',
         description: 'Transaktion wurde erfolgreich hinzugefügt.',
@@ -92,12 +132,15 @@ export default function BudgetDashboard() {
         variant: 'destructive',
       })
     }
-  }, [toast])
+  }, [toast, reloadRecent])
 
   const handleDeleteTransaction = useCallback(async (id: string) => {
     try {
       await apiClient.delete(`/transactions/${id}/`)
-      setTransactions((prev) => prev.filter((t) => t.id !== id))
+      setMonthTransactions((prev) => prev.filter((t) => t.id !== id))
+      // Drop it immediately, then let the refetch pull the next row up.
+      setRecentTransactions((prev) => prev.filter((t) => t.id !== id))
+      void reloadRecent()
       toast({
         title: 'Erfolg',
         description: 'Transaktion wurde gelöscht.',
@@ -110,13 +153,23 @@ export default function BudgetDashboard() {
         variant: 'destructive',
       })
     }
-  }, [toast])
+  }, [toast, reloadRecent])
 
   const handleUpdateTransaction = useCallback(async (updated: Transaction) => {
     try {
       const response = await apiClient.put<Transaction>(`/transactions/${updated.id}/`, updated)
-      setTransactions((prev) => prev.map((t) => (t.id === updated.id ? response.data : t)))
-      setSelectedTransaction(response.data)
+      const saved = response.data
+      // Moving a transaction's date out of the current month removes it
+      // from the dashboard, the same way the server-side filter would.
+      const staysInMonth = isInCurrentMonth(saved.date)
+      setMonthTransactions((prev) => {
+        const known = prev.some((t) => t.id === saved.id)
+        if (!staysInMonth) return prev.filter((t) => t.id !== saved.id)
+        return known ? prev.map((t) => (t.id === saved.id ? saved : t)) : [saved, ...prev]
+      })
+      setRecentTransactions((prev) => prev.map((t) => (t.id === saved.id ? saved : t)))
+      void reloadRecent()
+      setSelectedTransaction(saved)
       toast({
         title: 'Erfolg',
         description: 'Transaktion wurde aktualisiert.',
@@ -129,17 +182,12 @@ export default function BudgetDashboard() {
         variant: 'destructive',
       })
     }
-  }, [toast])
+  }, [toast, reloadRecent])
 
   const handleSelectTransaction = useCallback((transaction: Transaction) => {
     setSelectedTransaction(transaction)
     setIsDetailsOpen(true)
   }, [])
-
-  // Sort transactions by date (newest first)
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()
-  )
 
   return (
     <div className="bg-background">
@@ -167,7 +215,7 @@ export default function BudgetDashboard() {
           {/* Left Column - Charts */}
           <div>
             <TransactionList
-              transactions={sortedTransactions.slice(0, 8)}
+              transactions={recentTransactions}
               isLoading={isLoading}
               onSelectTransaction={handleSelectTransaction}
               headerAction={
@@ -182,7 +230,7 @@ export default function BudgetDashboard() {
            {/* Right Column - Charts */}
           <div className="space-y-8">
             <ExpenseChart data={monthlyData} isLoading={isLoading} />
-            <CategoryBreakdown transactions={transactions} isLoading={isLoading} />
+            <CategoryBreakdown transactions={monthTransactions} isLoading={isLoading} />
           </div>
         </div>
       </div>
