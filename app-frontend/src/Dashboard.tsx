@@ -217,6 +217,7 @@ export default function BudgetDashboard() {
             <TransactionList
               transactions={recentTransactions}
               isLoading={isLoading}
+              groupByMonth
               onSelectTransaction={handleSelectTransaction}
               headerAction={
                 <Button asChild variant="secondary" size="sm" className="px-0">
