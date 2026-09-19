@@ -1,40 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, ChevronDown, ListOrdered, Search, X } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { TransactionList } from '@/components/budget/transaction-list'
 import { TransactionDetailsModal } from '@/components/budget/transaction-details-modal'
+import { TransactionsHeader } from '@/components/transactions/transactions-header'
+import {
+  ALL,
+  TransactionsFilters,
+  type Filters,
+  type PeriodFilter,
+} from '@/components/transactions/transactions-filters'
 import { useToast } from '@/hooks/use-toast'
 import apiClient from '@/lib/apiClient'
-import { CATEGORIES, type PaginatedResponse, type Transaction } from '@/lib/types'
+import { type PaginatedResponse, type Transaction } from '@/lib/types'
 import { sortNewestFirst, toIsoDate } from '@/lib/utils'
 
 // How many rows one request returns; the first render and every
 // "Weitere laden" click fetch exactly this many.
 const PAGE_SIZE = 10
-
-// Radix Select cannot represent "no value" with an empty string, so the
-// "all" option of every dropdown uses this sentinel instead.
-const ALL = 'all'
-
-type TypeFilter = typeof ALL | Transaction['type']
-type PeriodFilter = typeof ALL | 'current-month' | 'last-2-months'
-
-interface Filters {
-  search: string
-  category: string
-  type: TypeFilter
-  period: PeriodFilter
-}
 
 const DEFAULT_FILTERS: Filters = {
   search: '',
@@ -223,87 +207,16 @@ export default function Transactions() {
   return (
     <div className="bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8 flex items-center gap-4">
-          <Button asChild variant="outline" size="icon" aria-label="Zurück zum Dashboard">
-            <Link to="/">
-              <ArrowLeft />
-            </Link>
-          </Button>
-          <div>
-            <div className="mb-1 flex items-center gap-2 text-sm text-muted-foreground">
-              <ListOrdered className="size-4" /> Übersicht
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Transaktionen
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Durchsuchen und filtern Sie alle Ihre Einnahmen und Ausgaben.
-            </p>
-          </div>
-        </header>
+        <TransactionsHeader />
 
-        <section className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Titel oder Notizen durchsuchen…"
-              aria-label="Transaktionen durchsuchen"
-              className="pl-9"
-            />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:flex">
-            <Select
-              value={filters.category}
-              onValueChange={(value) => updateFilter('category', value)}
-            >
-              <SelectTrigger className="w-full lg:w-44" aria-label="Kategorie">
-                <SelectValue placeholder="Kategorie" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Alle Kategorien</SelectItem>
-                {CATEGORIES.map((category) => (
-                  <SelectItem key={category.value} value={category.value}>
-                    {category.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={filters.type}
-              onValueChange={(value) => updateFilter('type', value as TypeFilter)}
-            >
-              <SelectTrigger className="w-full lg:w-40" aria-label="Art">
-                <SelectValue placeholder="Art" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Einnahmen & Ausgaben</SelectItem>
-                <SelectItem value="income">Nur Einnahmen</SelectItem>
-                <SelectItem value="expense">Nur Ausgaben</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={filters.period}
-              onValueChange={(value) => updateFilter('period', value as PeriodFilter)}
-            >
-              <SelectTrigger className="w-full lg:w-44" aria-label="Zeitraum">
-                <SelectValue placeholder="Zeitraum" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Gesamter Zeitraum</SelectItem>
-                <SelectItem value="current-month">Aktueller Monat</SelectItem>
-                <SelectItem value="last-2-months">Letzte 2 Monate</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="w-fit">
-              <X /> Filter zurücksetzen
-            </Button>
-          )}
-        </section>
+        <TransactionsFilters
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          filters={filters}
+          onFilterChange={updateFilter}
+          hasActiveFilters={hasActiveFilters}
+          onResetFilters={resetFilters}
+        />
 
         <TransactionList
           title={listTitle}
