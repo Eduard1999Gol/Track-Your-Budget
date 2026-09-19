@@ -1,18 +1,20 @@
 import logging
-from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Q, Sum
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from allauth.socialaccount.models import SocialApp
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.github.views import GitHubOAuth2Adapter
 from allauth.socialaccount.providers.microsoft.views import MicrosoftGraphOAuth2Adapter
 from allauth.socialaccount.providers.oauth2.client import OAuth2Client, OAuth2Error
 from dj_rest_auth.registration.views import SocialLoginView
+from rest_framework.exceptions import APIException
 
 from .models import Transaction
 from .serializers import (
@@ -49,19 +51,42 @@ SUMMARY_MONTHS = 3
 ZERO = Decimal('0.00')
 
 
-class GoogleLogin(SocialLoginView):
+class SocialProviderMisconfigured(APIException):
+    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = 'This login provider is not configured on the server.'
+    default_code = 'provider_not_configured'
+
+
+class ConfiguredSocialLoginView(SocialLoginView):
+    """SocialLoginView that fails as JSON instead of an HTML debug page.
+
+    allauth's adapter.get_app() raises SocialApp.DoesNotExist when no
+    SocialApp row exists for the provider on this site. DRF's default
+    exception_handler only formats APIException/Http404/PermissionDenied, so
+    that error would otherwise bubble past dispatch() straight into Django's
+    HTML error page, which callers can't parse as JSON (see `todo`).
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except SocialApp.DoesNotExist:
+            raise SocialProviderMisconfigured()
+
+
+class GoogleLogin(ConfiguredSocialLoginView):
     adapter_class = GoogleOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = OAuth2Client
 
 
-class GitHubLogin(SocialLoginView):
+class GitHubLogin(ConfiguredSocialLoginView):
     adapter_class = GitHubOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = OAuth2Client
 
 
-class MicrosoftLogin(SocialLoginView):
+class MicrosoftLogin(ConfiguredSocialLoginView):
     adapter_class = MicrosoftGraphOAuth2Adapter
     callback_url = settings.SOCIAL_AUTH_REDIRECT_URL
     client_class = LoggingOAuth2Client
@@ -137,7 +162,7 @@ class MonthlySummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        today = date.today()
+        today = timezone.localdate()
         result = []
 
         for offset in range(SUMMARY_MONTHS - 1, -1, -1):
