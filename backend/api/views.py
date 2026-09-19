@@ -1,10 +1,13 @@
 import logging
+from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -50,6 +53,22 @@ SUMMARY_MONTHS = 3
 
 ZERO = Decimal('0.00')
 
+# Upper bound for one page of the transactions list; the SPA asks for 10.
+TRANSACTIONS_MAX_LIMIT = 100
+
+
+class OptionalLimitOffsetPagination(LimitOffsetPagination):
+    """Paginate only when the client asks for it.
+
+    With ``default_limit`` unset, ``paginate_queryset`` returns None unless a
+    ``?limit=`` param is present, so the dashboard keeps receiving the plain
+    array it always did while the transactions page opts into
+    ``{count, next, previous, results}`` pages.
+    """
+
+    default_limit = None
+    max_limit = TRANSACTIONS_MAX_LIMIT
+
 
 class SocialProviderMisconfigured(APIException):
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
@@ -62,16 +81,16 @@ class ConfiguredSocialLoginView(SocialLoginView):
 
     allauth's adapter.get_app() raises SocialApp.DoesNotExist when no
     SocialApp row exists for the provider on this site. DRF's default
-    exception_handler only formats APIException/Http404/PermissionDenied, so
-    that error would otherwise bubble past dispatch() straight into Django's
-    HTML error page, which callers can't parse as JSON (see `todo`).
+    exception_handler only formats APIException/Http404/PermissionDenied and
+    re-raises anything else, so the swap has to happen *inside*
+    handle_exception: raising from dispatch() would already be past DRF's
+    try/except and end up as Django's HTML 500 page instead of a JSON 503.
     """
 
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            return super().dispatch(request, *args, **kwargs)
-        except SocialApp.DoesNotExist:
-            raise SocialProviderMisconfigured()
+    def handle_exception(self, exc):
+        if isinstance(exc, SocialApp.DoesNotExist):
+            exc = SocialProviderMisconfigured()
+        return super().handle_exception(exc)
 
 
 class GoogleLogin(ConfiguredSocialLoginView):
@@ -118,8 +137,63 @@ class UserMe(APIView):
 class TransactionView(APIView):
     permission_classes = [IsAuthenticated]
 
+    pagination_class = OptionalLimitOffsetPagination
+
+    @staticmethod
+    def _parse_date(params, key):
+        raw = params.get(key)
+        if not raw:
+            return None
+        try:
+            return date.fromisoformat(raw)
+        except ValueError:
+            raise ValidationError({key: 'Use the format YYYY-MM-DD.'})
+
+    def filter_queryset(self, request):
+        """Apply the optional query-string filters of the transactions page.
+
+        ``category`` / ``type`` match exactly, ``search`` is a case-insensitive
+        substring match on title or notes, ``date_from`` / ``date_to`` are
+        inclusive ISO dates. Unknown category/type values simply match nothing.
+        """
+        params = request.query_params
+        # Explicit secondary key so limit/offset pages never overlap or skip
+        # rows that share the same date.
+        queryset = request.user.transactions.order_by('-date', '-id')
+
+        category = params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+
+        tx_type = params.get('type')
+        if tx_type:
+            queryset = queryset.filter(type=tx_type)
+
+        search = params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | Q(notes__icontains=search)
+            )
+
+        date_from = self._parse_date(params, 'date_from')
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+
+        date_to = self._parse_date(params, 'date_to')
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+
+        return queryset
+
     def get(self, request):
-        transactions = request.user.transactions.all()
+        transactions = self.filter_queryset(request)
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(transactions, request, view=self)
+        if page is not None:
+            serializer = TransactionSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
