@@ -8,6 +8,7 @@ import { TransactionDetailsModal } from '@/components/budget/transaction-details
 import { ExpenseChart } from '@/components/budget/expense-chart'
 import { CategoryBreakdown } from '@/components/budget/category-breakdown'
 import type { Transaction, MonthlyData } from '@/lib/types'
+import { parseLocalDate } from '@/lib/utils'
 
 
 //  API call 
@@ -53,7 +54,7 @@ export default function BudgetDashboard() {
   // Calculate totals from current month's transactions only
   const now = new Date()
   const currentMonthTransactions = transactions.filter((t) => {
-    const d = new Date(t.date)
+    const d = parseLocalDate(t.date)
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
   })
 
@@ -134,7 +135,7 @@ export default function BudgetDashboard() {
 
   // Sort transactions by date (newest first)
   const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()
   )
 
   return (

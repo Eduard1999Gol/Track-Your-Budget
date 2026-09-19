@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, parseLocalDate } from '@/lib/utils'
 import { CATEGORIES, CATEGORY_COLORS, type Transaction } from '@/lib/types'
 
 interface TransactionListProps {
@@ -18,7 +18,7 @@ export function TransactionList({ transactions, isLoading, onSelectTransaction }
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('de-DE', {
+    return parseLocalDate(dateString).toLocaleDateString('de-DE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
