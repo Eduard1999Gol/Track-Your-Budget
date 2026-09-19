@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn, parseLocalDate } from '@/lib/utils'
-import { CATEGORIES, CATEGORY_COLORS, type Transaction } from '@/lib/types'
+import { CATEGORY_COLORS, type Transaction } from '@/lib/types'
 import { getCategoryIcon } from '@/lib/category-icons'
+import { formatCurrency, formatDate, formatMonthYear, getCategoryLabel } from '@/lib/format'
 
 interface TransactionListProps {
   transactions: Transaction[]
@@ -37,7 +38,7 @@ function groupTransactionsByMonth(transactions: Transaction[]): MonthGroup[] {
     } else {
       groups.push({
         key,
-        label: date.toLocaleString('de-DE', { month: 'long', year: 'numeric' }),
+        label: formatMonthYear(date),
         transactions: [transaction],
       })
     }
@@ -55,25 +56,6 @@ export function TransactionList({
   emptyMessage = 'Noch keine Transaktionen vorhanden',
   footer,
 }: TransactionListProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('de-DE', {
-      style: 'currency',
-      currency: 'EUR',
-    }).format(amount)
-  }
-
-  const formatDate = (dateString: string) => {
-    return parseLocalDate(dateString).toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    })
-  }
-
-  const getCategoryLabel = (categoryValue: string) => {
-    return CATEGORIES.find((c) => c.value === categoryValue)?.label || categoryValue
-  }
-
   const header = (
     <CardHeader>
       <CardTitle>{title}</CardTitle>
@@ -118,7 +100,7 @@ export function TransactionList({
           <div
             className={cn(
               'flex h-10 w-10 items-center justify-center rounded-full',
-              transaction.type === 'income' ? 'bg-primary/20' : 'bg-destructive/20'
+              transaction.type === 'income' ? 'bg-primary/20' : 'bg-destructive/20',
             )}
           >
             <CategoryIcon
@@ -132,7 +114,7 @@ export function TransactionList({
               <span
                 className={cn(
                   'inline-block h-2 w-2 rounded-full',
-                  CATEGORY_COLORS[transaction.category] || 'bg-muted-foreground'
+                  CATEGORY_COLORS[transaction.category] || 'bg-muted-foreground',
                 )}
               />
               <span>{getCategoryLabel(transaction.category)}</span>
@@ -144,7 +126,7 @@ export function TransactionList({
         <span
           className={cn(
             'font-semibold',
-            transaction.type === 'income' ? 'text-primary' : 'text-destructive'
+            transaction.type === 'income' ? 'text-primary' : 'text-destructive',
           )}
         >
           {transaction.type === 'income' ? '+' : '-'}
